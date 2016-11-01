@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -52,8 +53,6 @@ import org.springframework.messaging.Message;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 /**
  * A module that writes its incoming payload to an RDBMS using JDBC.
  *
@@ -80,7 +79,7 @@ public class JdbcSinkConfiguration {
 
 
 	@Bean
-	@ServiceActivator(autoStartup = "false", inputChannel = Sink.INPUT)
+	@ServiceActivator(autoStartup = "true", inputChannel = Sink.INPUT)
 	public JdbcMessageHandler jdbcMessageHandler(DataSource dataSource) {
 		final MultiValueMap<String, Expression> columnExpressionVariations = new LinkedMultiValueMap<>();
 		for (Map.Entry<String, String> entry : properties.getColumns().entrySet()) {
