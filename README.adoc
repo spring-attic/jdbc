@@ -1,1 +1,9 @@
-# jdbc
+# JDBC Source and Sink
+
+To learn more about this application and the supported properties, please review the following link.
+
+## JDBC Source
+include::spring-cloud-starter-stream-source-jdbc/README.adoc[]
+
+## JDBC Sink
+include::spring-cloud-starter-stream-sink-jdbc/README.adoc[]
