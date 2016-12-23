@@ -19,7 +19,6 @@ package org.springframework.cloud.stream.app.jdbc.sink;
 import java.util.Collections;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.stream.app.jdbc.SupportsShorthands;
 
@@ -35,8 +34,7 @@ public class JdbcSinkProperties {
 	/**
 	 * The name of the table to write into.
 	 */
-	@Value("${spring.application.name:messages}")
-	private String tableName;
+	private String tableName = "messages";
 
 	/**
 	 * The names of the columns that shall receive data, as a set of column[:SpEL] mappings.
