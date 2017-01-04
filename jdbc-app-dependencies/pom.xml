@@ -9,9 +9,10 @@
     <description>Spring Cloud Stream JDBC App Dependencies</description>
 
     <parent>
-        <groupId>org.springframework.cloud.stream.app</groupId>
-        <artifactId>app-starters-core-dependencies</artifactId>
-        <version>1.1.1.RELEASE</version>
+	<artifactId>spring-cloud-dependencies-parent</artifactId>
+        <groupId>org.springframework.cloud</groupId>
+        <version>1.2.1.RELEASE</version>
+        <relativePath />
     </parent>
 
     <properties>
