@@ -32,29 +32,29 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
-import org.springframework.boot.test.IntegrationTest;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.cloud.stream.annotation.Bindings;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.cloud.stream.test.binder.MessageCollector;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.messaging.Message;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Integration Tests for JdbcSource. Uses hsqldb as a (real) embedded DB.
  *
  * @author Thomas Risberg
+ * @author Artem Bilan
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = {JdbcSourceIntegrationTests.JdbcSourceApplication.class,
-		EmbeddedDataSourceConfiguration.class})
+@SpringBootTest(
+		classes = { JdbcSourceIntegrationTests.JdbcSourceApplication.class, EmbeddedDataSourceConfiguration.class },
+		webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DirtiesContext
 public abstract class JdbcSourceIntegrationTests {
 
 	@Autowired
-	@Bindings(JdbcSourceConfiguration.class)
 	protected Source source;
 
 	@Autowired
@@ -63,7 +63,7 @@ public abstract class JdbcSourceIntegrationTests {
 	@Autowired
 	protected MessageCollector messageCollector;
 
-	@IntegrationTest("jdbc.query=select id, name from test order by id")
+	@TestPropertySource(properties = "jdbc.query=select id, name from test order by id")
 	public static class DefaultBehaviorTests extends JdbcSourceIntegrationTests {
 
 		@Test
@@ -84,7 +84,7 @@ public abstract class JdbcSourceIntegrationTests {
 
 	}
 
-	@IntegrationTest(value = {"jdbc.query=select id, name, tag from test where tag is NULL order by id", "jdbc.split=false"})
+	@TestPropertySource(properties = { "jdbc.query=select id, name, tag from test where tag is NULL order by id", "jdbc.split=false" })
 	public static class SelectAllNoSplitTests extends JdbcSourceIntegrationTests {
 
 		@Test
@@ -99,7 +99,7 @@ public abstract class JdbcSourceIntegrationTests {
 
 	}
 
-	@IntegrationTest(value = {"jdbc.query=select id, name from test order by id", "trigger.fixedDelay=600"})
+	@TestPropertySource(properties = { "jdbc.query=select id, name from test order by id", "trigger.fixedDelay=600" })
 	public static class SelectAllWithDelayTests extends JdbcSourceIntegrationTests {
 
 		@Test
@@ -126,7 +126,7 @@ public abstract class JdbcSourceIntegrationTests {
 
 	}
 
-	@IntegrationTest(value = {"jdbc.query=select id, name from test order by id", "trigger.fixedDelay=1"})
+	@TestPropertySource(properties = { "jdbc.query=select id, name from test order by id", "trigger.fixedDelay=1" })
 	public static class SelectAllWithMinDelayTests extends JdbcSourceIntegrationTests {
 
 		@Test
@@ -152,8 +152,11 @@ public abstract class JdbcSourceIntegrationTests {
 
 	}
 
-	@IntegrationTest(value = {"jdbc.query=select id, name, tag from test where tag is NULL order by id", "jdbc.split=false",
-			"jdbc.maxRowsPerPoll=2", "jdbc.update=update test set tag='1' where id in (:id)"})
+	@TestPropertySource(properties = {
+			"jdbc.query=select id, name, tag from test where tag is NULL order by id",
+			"jdbc.split=false",
+			"jdbc.maxRowsPerPoll=2",
+			"jdbc.update=update test set tag='1' where id in (:id)" })
 	public static class Select2PerPollNoSplitWithUpdateTests extends JdbcSourceIntegrationTests {
 
 		@Test

@@ -31,9 +31,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
-import org.springframework.boot.test.IntegrationTest;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.cloud.stream.annotation.Bindings;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcOperations;
@@ -41,7 +39,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.tuple.Tuple;
 import org.springframework.tuple.TupleBuilder;
 
@@ -50,21 +49,21 @@ import org.springframework.tuple.TupleBuilder;
  *
  * @author Eric Bottard
  * @author Thomas Risberg
+ * @author Artem Bilan
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = {JdbcSinkIntegrationTests.JdbcSinkApplication.class, EmbeddedDataSourceConfiguration.class})
-@IntegrationTest({"server.port=-1"})
+@RunWith(SpringRunner.class)
+@SpringBootTest(
+		classes = { JdbcSinkIntegrationTests.JdbcSinkApplication.class, EmbeddedDataSourceConfiguration.class},
+		webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DirtiesContext
 public abstract class JdbcSinkIntegrationTests {
 
 	@Autowired
-	@Bindings(JdbcSinkConfiguration.class)
 	protected Sink channels;
 
 	@Autowired
 	protected JdbcOperations jdbcOperations;
 
-	@IntegrationTest
 	public static class DefaultBehavior extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -76,7 +75,7 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = "jdbc.columns=a,b")
+	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class SimpleMappingTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -89,7 +88,7 @@ public abstract class JdbcSinkIntegrationTests {
 	}
 
 	// annotation below relies on java.util.Properties so backslash needs to be doubled
-	@IntegrationTest(value = "jdbc.columns=a: a.substring(0\\\\, 4), b: b + 624")
+	@TestPropertySource(properties = "jdbc.columns=a: a.substring(0\\\\, 4), b: b + 624")
 	public static class SpELTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -102,7 +101,7 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = {"jdbc.columns=a,b"})
+	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class VaryingInsertTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -125,7 +124,7 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = {"jdbc.tableName=no_script", "jdbc.initialize=true", "jdbc.columns=a,b"})
+	@TestPropertySource(properties = { "jdbc.tableName=no_script", "jdbc.initialize=true", "jdbc.columns=a,b" })
 	public static class ImplicitTableCreationTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -137,8 +136,8 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = {"jdbc.tableName=foobar", "jdbc.initialize=classpath:explicit-script.sql", "jdbc.columns=a,b"})
-	public static class ExlicitTableCreationTests extends JdbcSinkIntegrationTests {
+	@TestPropertySource(properties = { "jdbc.tableName=foobar", "jdbc.initialize=classpath:explicit-script.sql", "jdbc.columns=a,b" })
+	public static class ExplicitTableCreationTests extends JdbcSinkIntegrationTests {
 
 		@Test
 		public void testInsertion() {
@@ -149,7 +148,7 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = {"jdbc.columns=a,b"})
+	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class MapPayloadInsertTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -175,7 +174,7 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = {"jdbc.columns=a,b"})
+	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class TuplePayloadInsertTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -198,7 +197,7 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
-	@IntegrationTest(value = {"jdbc.columns=a,b"})
+	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class JsonStringPayloadInsertTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -222,6 +221,7 @@ public abstract class JdbcSinkIntegrationTests {
 	}
 
 	public static class Payload {
+
 		private String a;
 
 		private Integer b;
@@ -254,6 +254,7 @@ public abstract class JdbcSinkIntegrationTests {
 		public String toString() {
 			return a + b;
 		}
+
 	}
 
 	@SpringBootApplication
