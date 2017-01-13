@@ -30,7 +30,6 @@ import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -53,7 +52,7 @@ import org.springframework.tuple.TupleBuilder;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
-		classes = { JdbcSinkIntegrationTests.JdbcSinkApplication.class, EmbeddedDataSourceConfiguration.class},
+		properties = "spring.datasource.url=jdbc:h2:mem:test",
 		webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DirtiesContext
 public abstract class JdbcSinkIntegrationTests {

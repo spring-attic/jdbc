@@ -31,7 +31,6 @@ import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.cloud.stream.test.binder.MessageCollector;
@@ -49,7 +48,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(
-		classes = { JdbcSourceIntegrationTests.JdbcSourceApplication.class, EmbeddedDataSourceConfiguration.class },
+		properties = "spring.datasource.url=jdbc:h2:mem:test",
 		webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DirtiesContext
 public abstract class JdbcSourceIntegrationTests {
