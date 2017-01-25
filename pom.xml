@@ -15,6 +15,8 @@
 	<modules>
 		<module>spring-cloud-starter-stream-source-jdbc</module>
 		<module>spring-cloud-starter-stream-sink-jdbc</module>
+		<module>spring-cloud-starter-stream-sink-pgcopy</module>
+		<module>jdbc-app-starters-common</module>
 		<module>jdbc-app-dependencies</module>
 	</modules>
 

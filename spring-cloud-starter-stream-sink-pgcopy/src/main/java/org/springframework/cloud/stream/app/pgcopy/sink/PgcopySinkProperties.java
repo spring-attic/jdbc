@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2016-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,35 +14,46 @@
  * limitations under the License.
  */
 
-package org.springframework.cloud.stream.app.jdbc.sink;
+package org.springframework.cloud.stream.app.pgcopy.sink;
 
-import java.util.Collections;
-import java.util.Map;
+import javax.validation.constraints.NotNull;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.stream.app.jdbc.SupportsShorthands;
 
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Holds configuration properties for the Jdbc Sink module.
+ * Used to configure the pgcopy sink module options that are related to writing using the PostgreSQL CopyManager API.
  *
- * @author Eric Bottard
+ * @author Thomas Risberg
  */
-@ConfigurationProperties("jdbc")
-public class JdbcSinkProperties {
+@SuppressWarnings("unused")
+@ConfigurationProperties("pgcopy")
+public class PgcopySinkProperties {
 
 	/**
 	 * The name of the table to write into.
 	 */
-	@Value("${spring.application.name:messages}")
+	@NotNull
 	private String tableName;
 
 	/**
-	 * The names of the columns that shall receive data, as a set of column[:SpEL] mappings.
+	 * The names of the columns that shall receive data.
 	 * Also used at initialization time to issue the DDL.
 	 */
-	private Map<String, String> columns = Collections.singletonMap("payload", "payload.toString()");
+	private List<String> columns = Collections.singletonList("payload");
+
+	/**
+	 * Threshold in number of messages when data will be flushed to database table.
+	 */
+	private int batchSize = 10000;
+
+	/**
+	 * Idle timeout in milliseconds when data is automatically flushed to database table.
+	 */
+	private long idleTimeout = -1L;
 
 	/**
 	 * 'true', 'false' or the location of a custom initialization script for the table.
@@ -57,13 +68,29 @@ public class JdbcSinkProperties {
 		this.tableName = tableName;
 	}
 
-	public Map<String, String> getColumns() {
+	public List<String> getColumns() {
 		return columns;
 	}
 
 	@SupportsShorthands
-	public void setColumns(Map<String, String> columns) {
+	public void setColumns(List<String> columns) {
 		this.columns = columns;
+	}
+
+	public int getBatchSize() {
+		return batchSize;
+	}
+
+	public void setBatchSize(int batchSize) {
+		this.batchSize = batchSize;
+	}
+
+	public long getIdleTimeout() {
+		return idleTimeout;
+	}
+
+	public void setIdleTimeout(long idleTimeout) {
+		this.idleTimeout = idleTimeout;
 	}
 
 	public String getInitialize() {
