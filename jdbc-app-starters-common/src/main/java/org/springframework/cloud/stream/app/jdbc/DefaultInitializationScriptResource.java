@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.springframework.cloud.stream.app.jdbc.sink;
+package org.springframework.cloud.stream.app.jdbc;
 
 import java.nio.charset.Charset;
+import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,29 +29,30 @@ import org.springframework.core.io.ByteArrayResource;
  * All columns are created as VARCHAR(2000).
  *
  * @author Eric Bottard
+ * @author Thomas Risberg
  */
 public class DefaultInitializationScriptResource extends ByteArrayResource {
 
 	private static final Log logger = LogFactory.getLog(DefaultInitializationScriptResource.class);
 
-	public DefaultInitializationScriptResource(JdbcSinkProperties properties) {
-		super(scriptFor(properties).getBytes(Charset.forName("UTF-8")));
+	public DefaultInitializationScriptResource(String tableName, Collection<String> columns) {
+		super(scriptFor(tableName, columns).getBytes(Charset.forName("UTF-8")));
 	}
 
-	private static String scriptFor(JdbcSinkProperties properties) {
+	private static String scriptFor(String tableName, Collection<String> columns) {
 		StringBuilder result = new StringBuilder("DROP TABLE ");
-		result.append(properties.getTableName()).append(";\n\n");
+		result.append(tableName).append(";\n\n");
 
-		result.append("CREATE TABLE ").append(properties.getTableName()).append('(');
+		result.append("CREATE TABLE ").append(tableName).append('(');
 		int i = 0;
-		for (String column : properties.getColumns().keySet()) {
+		for (String column : columns) {
 			if (i++ > 0) {
 				result.append(", ");
 			}
 			result.append(column).append(" VARCHAR(2000)");
 		}
 		result.append(");\n");
-		logger.debug(String.format("Generated the following initializing script for table %s:\n%s", properties.getTableName(),
+		logger.debug(String.format("Generated the following initializing script for table %s:\n%s", tableName,
 				result.toString()));
 		return result.toString();
 	}

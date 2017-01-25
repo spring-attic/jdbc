@@ -2,9 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>spring-cloud-starter-stream-sink-jdbc</artifactId>
+	<artifactId>spring-cloud-starter-stream-sink-pgcopy</artifactId>
 	<packaging>jar</packaging>
-	<description>Spring Cloud Stream jdbc-sink core</description>
+	<description>Spring Cloud Stream pgcopy sink</description>
 
 	<parent>
 		<groupId>org.springframework.cloud.stream.app</groupId>
@@ -14,10 +14,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.springframework.integration</groupId>
-			<artifactId>spring-integration-jdbc</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
@@ -26,24 +22,17 @@
 			<artifactId>jdbc-app-starters-common</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<scope>runtime</scope>
+			<groupId>org.springframework.integration</groupId>
+			<artifactId>spring-integration-jdbc</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mariadb.jdbc</groupId>
-			<artifactId>mariadb-java-client</artifactId>
-			<scope>runtime</scope>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.cloud.stream.app</groupId>
@@ -70,7 +59,7 @@
 						<version>${project.version}</version>
 					</bom>
 					<generatedApps>
-						<jdbc-sink/>
+						<pgcopy-sink/>
 					</generatedApps>
 				</configuration>
 			</plugin>

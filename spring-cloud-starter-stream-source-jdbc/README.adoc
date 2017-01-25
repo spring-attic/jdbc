@@ -15,12 +15,11 @@ $$jdbc.max-rows-per-poll$$:: $$Max numbers of rows to process for each poll.$$ *
 $$jdbc.query$$:: $$The query to use to select data.$$ *($$String$$, default: `$$<none>$$`)*
 $$jdbc.split$$:: $$Whether to split the SQL result as individual messages.$$ *($$Boolean$$, default: `$$true$$`)*
 $$jdbc.update$$:: $$An SQL update statement to execute for marking polled messages as 'seen'.$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.driver-class-name$$:: $$<documentation missing>$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.init-sql$$:: $$<documentation missing>$$ *($$String$$, default: `$$<none>$$`)*
+$$spring.datasource.driver-class-name$$:: $$Fully qualified name of the JDBC driver. Auto-detected based on the URL by default.$$ *($$String$$, default: `$$<none>$$`)*
 $$spring.datasource.initialize$$:: $$Populate the database using 'data.sql'.$$ *($$Boolean$$, default: `$$true$$`)*
-$$spring.datasource.password$$:: $$<documentation missing>$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.url$$:: $$<documentation missing>$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.username$$:: $$<documentation missing>$$ *($$String$$, default: `$$<none>$$`)*
+$$spring.datasource.password$$:: $$Login password of the database.$$ *($$String$$, default: `$$<none>$$`)*
+$$spring.datasource.url$$:: $$JDBC url of the database.$$ *($$String$$, default: `$$<none>$$`)*
+$$spring.datasource.username$$:: $$Login user of the database.$$ *($$String$$, default: `$$<none>$$`)*
 $$trigger.cron$$:: $$Cron expression value for the Cron Trigger.$$ *($$String$$, default: `$$<none>$$`)*
 $$trigger.date-format$$:: $$Format for the date value.$$ *($$String$$, default: `$$<none>$$`)*
 $$trigger.fixed-delay$$:: $$Fixed delay for periodic triggers.$$ *($$Integer$$, default: `$$1$$`)*
