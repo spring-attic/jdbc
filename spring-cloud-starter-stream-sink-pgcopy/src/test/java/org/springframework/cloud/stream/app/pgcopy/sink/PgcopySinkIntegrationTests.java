@@ -141,6 +141,20 @@ public abstract class PgcopySinkIntegrationTests {
 	}
 
 	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.delimiter=\\t"})
+	public static class PgcopyEscapedDelimiterTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyCSV() {
+			channels.input().send(MessageBuilder.withPayload("123\t\"Nisse\"\t25").build());
+			channels.input().send(MessageBuilder.withPayload("124\t\"Anna\"\t21").build());
+			channels.input().send(MessageBuilder.withPayload("125\t\"Bubba\"\t22").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			Assert.assertThat(result, is(3));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
 			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.quote='"})
 	public static class PgcopyQuoteTests extends PgcopySinkIntegrationTests {
 

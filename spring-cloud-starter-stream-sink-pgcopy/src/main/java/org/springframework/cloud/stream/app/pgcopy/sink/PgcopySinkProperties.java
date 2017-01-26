@@ -73,9 +73,10 @@ public class PgcopySinkProperties {
 
 	/**
 	 * Specifies the character that separates columns within each row (line) of the file. The default is a tab character
-	 * in text format, a comma in CSV format. This must be a single one-byte character.
+	 * in text format, a comma in CSV format. This must be a single one-byte character. Using an escaped value like '\t'
+	 * is allowed.
 	 */
-	private Character delimiter;
+	private String delimiter;
 
 	/**
 	 * Specifies the quoting character to be used when a data value is quoted. The default is double-quote. This must
@@ -148,11 +149,11 @@ public class PgcopySinkProperties {
 		this.nullString = nullString;
 	}
 
-	public Character getDelimiter() {
+	public String getDelimiter() {
 		return delimiter;
 	}
 
-	public void setDelimiter(Character delimiter) {
+	public void setDelimiter(String delimiter) {
 		this.delimiter = delimiter;
 	}
 

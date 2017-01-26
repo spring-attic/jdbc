@@ -107,7 +107,7 @@ public class PgcopySinkPropertiesTests {
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
-		assertThat(String.valueOf(properties.getDelimiter()), equalTo(delimiter));
+		assertThat(properties.getDelimiter(), equalTo(delimiter));
 	}
 
 	@Test

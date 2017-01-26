@@ -123,16 +123,16 @@ public class PgcopySinkConfiguration {
 			options.append("CSV");
 		}
 		if (properties.getDelimiter() != null) {
-			options.append(quotedOptionCharValue(options.length(), "DELIMITER", properties.getDelimiter()));
+			options.append(escapedOptionCharacterValue(options.length(), "DELIMITER", properties.getDelimiter()));
 		}
 		if (properties.getNullString() != null) {
 			options.append((options.length() > 0 ? " " : "") + "NULL '" + properties.getNullString() + "'");
 		}
 		if (properties.getQuote() != null) {
-			options.append(quotedOptionCharValue(options.length(), "QUOTE", properties.getQuote()));
+			options.append(quotedOptionCharacterValue(options.length(), "QUOTE", properties.getQuote()));
 		}
 		if (properties.getEscape() != null) {
-			options.append(quotedOptionCharValue(options.length(), "ESCAPE", properties.getEscape()));
+			options.append(quotedOptionCharacterValue(options.length(), "ESCAPE", properties.getEscape()));
 		}
 		if (options.length() > 0) {
 			sql.append(" WITH " + options.toString());
@@ -223,8 +223,12 @@ public class PgcopySinkConfiguration {
 		return jt;
 	}
 
-	private String quotedOptionCharValue(int length, String option, char value) {
+	private String quotedOptionCharacterValue(int length, String option, char value) {
 		return (length > 0 ? " " : "") + option + " '" + (value == '\'' ? "''" : value) + "'";
+	}
+
+	private String escapedOptionCharacterValue(int length, String option, String value) {
+		return (length > 0 ? " " : "") + option + " " + (value.startsWith("\\") ? "E'" + value: "'" + value) + "'";
 	}
 
 
