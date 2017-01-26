@@ -60,6 +60,37 @@ public class PgcopySinkProperties {
 	 */
 	private String initialize = "false";
 
+	/**
+	 * Format to use for the copy command.
+	 */
+	private Format format = Format.TEXT;
+
+	/**
+	 * Specifies the string that represents a null value. The default is \N (backslash-N) in text format, and an
+	 * unquoted empty string in CSV format.
+	 */
+	private String nullString;
+
+	/**
+	 * Specifies the character that separates columns within each row (line) of the file. The default is a tab character
+	 * in text format, a comma in CSV format. This must be a single one-byte character.
+	 */
+	private Character delimiter;
+
+	/**
+	 * Specifies the quoting character to be used when a data value is quoted. The default is double-quote. This must
+	 * be a single one-byte character. This option is allowed only when using CSV format.
+	 */
+	private Character quote;
+
+	/**
+	 * Specifies the character that should appear before a data character that matches the QUOTE value. The default is
+	 * the same as the QUOTE value (so that the quoting character is doubled if it appears in the data). This must be
+	 * a single one-byte character. This option is allowed only when using CSV format.
+	 */
+	private Character escape;
+
+
 	public String getTableName() {
 		return tableName;
 	}
@@ -99,5 +130,51 @@ public class PgcopySinkProperties {
 
 	public void setInitialize(String initialize) {
 		this.initialize = initialize;
+	}
+
+	public Format getFormat() {
+		return format;
+	}
+
+	public void setFormat(Format format) {
+		this.format = format;
+	}
+
+	public String getNullString() {
+		return nullString;
+	}
+
+	public void setNullString(String nullString) {
+		this.nullString = nullString;
+	}
+
+	public Character getDelimiter() {
+		return delimiter;
+	}
+
+	public void setDelimiter(Character delimiter) {
+		this.delimiter = delimiter;
+	}
+
+	public Character getQuote() {
+		return quote;
+	}
+
+	public void setQuote(Character quote) {
+		this.quote = quote;
+	}
+
+	public Character getEscape() {
+		return escape;
+	}
+
+	public void setEscape(Character escape) {
+		this.escape = escape;
+	}
+
+	public static enum Format {
+
+		TEXT, CSV
+
 	}
 }

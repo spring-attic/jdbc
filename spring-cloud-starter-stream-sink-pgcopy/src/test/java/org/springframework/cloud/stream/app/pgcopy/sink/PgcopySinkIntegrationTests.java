@@ -27,6 +27,7 @@ import org.springframework.cloud.stream.app.pgcopy.test.PostgresTestSupport;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -40,6 +41,7 @@ import static org.hamcrest.Matchers.*;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
 		classes = PgcopySinkIntegrationTests.PgcopySinkApplication.class)
+@DirtiesContext
 public abstract class PgcopySinkIntegrationTests {
 
 	@ClassRule
@@ -63,17 +65,110 @@ public abstract class PgcopySinkIntegrationTests {
 		}
 	}
 
-	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=4", "pgcopy.initialize=true",
 			"pgcopy.columns=id,name,age"})
-	public static class PgopyCSVTests extends PgcopySinkIntegrationTests {
+	public static class PgcopyTextTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyText() {
+			channels.input().send(MessageBuilder.withPayload("123\tNisse\t25").build());
+			channels.input().send(MessageBuilder.withPayload("124\tAnna\t21").build());
+			channels.input().send(MessageBuilder.withPayload("125\tBubba\t22").build());
+			channels.input().send(MessageBuilder.withPayload("126\tPelle\t32").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			Assert.assertThat(result, is(4));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV"})
+	public static class PgcopyCSVTests extends PgcopySinkIntegrationTests {
 
 		@Test
 		public void testCopyCSV() {
-			channels.input().send(MessageBuilder.withPayload("123, \"Nisse\", 25").build());
-			channels.input().send(MessageBuilder.withPayload("124, \"Anna\", 21").build());
-			channels.input().send(MessageBuilder.withPayload("125, \"Bubba\", 22").build());
+			channels.input().send(MessageBuilder.withPayload("123,\"Nisse\",25").build());
+			channels.input().send(MessageBuilder.withPayload("124,\"Anna\",21").build());
+			channels.input().send(MessageBuilder.withPayload("125,\"Bubba\",22").build());
 			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
 			Assert.assertThat(result, is(3));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV"})
+	public static class PgcopyNullTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyCSV() {
+			channels.input().send(MessageBuilder.withPayload("123,\"Nisse\",25").build());
+			channels.input().send(MessageBuilder.withPayload("124,,21").build());
+			channels.input().send(MessageBuilder.withPayload("125,\"Bubba\",22").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			int nulls = jdbcOperations.queryForObject("select count(*) from names where name is null", Integer.class);
+			Assert.assertThat(result, is(3));
+			Assert.assertThat(nulls, is(1));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.null-string=null"})
+	public static class PgcopyNullStringTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyCSV() {
+			channels.input().send(MessageBuilder.withPayload("123,\"Nisse\",25").build());
+			channels.input().send(MessageBuilder.withPayload("124,null,21").build());
+			channels.input().send(MessageBuilder.withPayload("125,\"Bubba\",22").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			int nulls = jdbcOperations.queryForObject("select count(*) from names where name is null", Integer.class);
+			Assert.assertThat(result, is(3));
+			Assert.assertThat(nulls, is(1));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.delimiter=|"})
+	public static class PgcopyDelimiterTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyCSV() {
+			channels.input().send(MessageBuilder.withPayload("123|\"Nisse\"|25").build());
+			channels.input().send(MessageBuilder.withPayload("124|\"Anna\"|21").build());
+			channels.input().send(MessageBuilder.withPayload("125|\"Bubba\"|22").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			Assert.assertThat(result, is(3));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.quote='"})
+	public static class PgcopyQuoteTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyCSV() {
+			channels.input().send(MessageBuilder.withPayload("123,Nisse,25").build());
+			channels.input().send(MessageBuilder.withPayload("124,'Anna',21").build());
+			channels.input().send(MessageBuilder.withPayload("125,Bubba,22").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			int quoted = jdbcOperations.queryForObject("select count(*) from names where name = 'Anna'", Integer.class);
+			Assert.assertThat(result, is(3));
+			Assert.assertThat(quoted, is(1));
+		}
+	}
+
+	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.escape=\\\\"})
+	public static class PgcopyEscapeTests extends PgcopySinkIntegrationTests {
+
+		@Test
+		public void testCopyCSV() {
+			channels.input().send(MessageBuilder.withPayload("123,Nisse,25").build());
+			channels.input().send(MessageBuilder.withPayload("124,\"Anna\\\"\",21").build());
+			channels.input().send(MessageBuilder.withPayload("125,Bubba,22").build());
+			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
+			int quoted = jdbcOperations.queryForObject("select count(*) from names where name = 'Anna\"'", Integer.class);
+			Assert.assertThat(result, is(3));
+			Assert.assertThat(quoted, is(1));
 		}
 	}
 
@@ -83,6 +178,4 @@ public abstract class PgcopySinkIntegrationTests {
 			SpringApplication.run(PgcopySinkApplication.class, args);
 		}
 	}
-
-
 }

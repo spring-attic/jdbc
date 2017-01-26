@@ -11,8 +11,18 @@ The **$$jdbc$$** $$sink$$ has the following options:
 $$pgcopy.batch-size$$:: $$Threshold in number of messages when data will be flushed to database table.$$ *($$Integer$$, default: `$$10000$$`)*
 $$pgcopy.columns$$:: $$The names of the columns that shall receive data.
  Also used at initialization time to issue the DDL.$$ *($$java.util.List<java.lang.String>$$, default: `$$payload$$`)*
+$$pgcopy.delimiter$$:: $$Specifies the character that separates columns within each row (line) of the file. The default is a tab character
+ in text format, a comma in CSV format. This must be a single one-byte character.$$ *($$Character$$, default: `$$<none>$$`)*
+$$pgcopy.escape$$:: $$Specifies the character that should appear before a data character that matches the QUOTE value. The default is
+ the same as the QUOTE value (so that the quoting character is doubled if it appears in the data). This must be
+ a single one-byte character. This option is allowed only when using CSV format.$$ *($$Character$$, default: `$$<none>$$`)*
+$$pgcopy.format$$:: $$Format to use for the copy command.$$ *($$Format$$, default: `$$<none>$$`, possible values: `TEXT`,`CSV`)*
 $$pgcopy.idle-timeout$$:: $$Idle timeout in milliseconds when data is automatically flushed to database table.$$ *($$Long$$, default: `$$-1$$`)*
 $$pgcopy.initialize$$:: $$'true', 'false' or the location of a custom initialization script for the table.$$ *($$String$$, default: `$$false$$`)*
+$$pgcopy.null-string$$:: $$Specifies the string that represents a null value. The default is \N (backslash-N) in text format, and an
+ unquoted empty string in CSV format.$$ *($$String$$, default: `$$<none>$$`)*
+$$pgcopy.quote$$:: $$Specifies the quoting character to be used when a data value is quoted. The default is double-quote. This must
+ be a single one-byte character. This option is allowed only when using CSV format.$$ *($$Character$$, default: `$$<none>$$`)*
 $$pgcopy.table-name$$:: $$The name of the table to write into.$$ *($$String$$, default: `$$<none>$$`)*
 $$spring.datasource.driver-class-name$$:: $$Fully qualified name of the JDBC driver. Auto-detected based on the URL by default.$$ *($$String$$, default: `$$<none>$$`)*
 $$spring.datasource.password$$:: $$Login password of the database.$$ *($$String$$, default: `$$<none>$$`)*

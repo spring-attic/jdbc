@@ -114,9 +114,29 @@ public class PgcopySinkConfiguration {
 		// the copy command
 		final StringBuilder sql = new StringBuilder("COPY " + properties.getTableName());
 		if (columns.length() > 0) {
-			sql.append(" (" + columns + ") ");
+			sql.append(" (" + columns + ")");
 		}
-		sql.append(" FROM STDIN CSV");
+		sql.append(" FROM STDIN");
+
+		StringBuilder options = new StringBuilder();
+		if (properties.getFormat() == PgcopySinkProperties.Format.CSV) {
+			options.append("CSV");
+		}
+		if (properties.getDelimiter() != null) {
+			options.append(quotedOptionCharValue(options.length(), "DELIMITER", properties.getDelimiter()));
+		}
+		if (properties.getNullString() != null) {
+			options.append((options.length() > 0 ? " " : "") + "NULL '" + properties.getNullString() + "'");
+		}
+		if (properties.getQuote() != null) {
+			options.append(quotedOptionCharValue(options.length(), "QUOTE", properties.getQuote()));
+		}
+		if (properties.getEscape() != null) {
+			options.append(quotedOptionCharValue(options.length(), "ESCAPE", properties.getEscape()));
+		}
+		if (options.length() > 0) {
+			sql.append(" WITH " + options.toString());
+		}
 
 		return new MessageHandler() {
 
@@ -201,6 +221,10 @@ public class PgcopySinkConfiguration {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.setNativeJdbcExtractor(new Jdbc4NativeJdbcExtractor());
 		return jt;
+	}
+
+	private String quotedOptionCharValue(int length, String option, char value) {
+		return (length > 0 ? " " : "") + option + " '" + (value == '\'' ? "''" : value) + "'";
 	}
 
 

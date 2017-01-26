@@ -27,7 +27,7 @@ import org.junit.rules.ExpectedException;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.EnvironmentTestUtils;
+import org.springframework.boot.test.util.EnvironmentTestUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
 
@@ -67,6 +67,69 @@ public class PgcopySinkPropertiesTests {
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
 		assertThat(properties.getTableName(), equalTo(table));
+	}
+
+	@Test
+	public void formatDefaultsToText() {
+		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test");
+		this.context.register(Conf.class);
+		this.context.refresh();
+		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
+		assertThat(properties.getFormat().toString(), equalTo("TEXT"));
+	}
+
+	@Test
+	public void formatCanBeCustomized() {
+		String format = "CSV";
+		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format:" + format);
+		this.context.register(Conf.class);
+		this.context.refresh();
+		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
+		assertThat(properties.getFormat().toString(), equalTo(format));
+	}
+
+	@Test
+	public void nullCanBeCustomized() {
+		String nullString = "@#$";
+		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
+				"pgcopy.null-string: " + nullString);
+		this.context.register(Conf.class);
+		this.context.refresh();
+		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
+		assertThat(properties.getNullString(), equalTo(nullString));
+	}
+
+	@Test
+	public void delimiterCanBeCustomized() {
+		String delimiter = "|";
+		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
+				"pgcopy.delimiter: " + delimiter);
+		this.context.register(Conf.class);
+		this.context.refresh();
+		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
+		assertThat(String.valueOf(properties.getDelimiter()), equalTo(delimiter));
+	}
+
+	@Test
+	public void quoteCanBeCustomized() {
+		String quote = "'";
+		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
+				"pgcopy.quote: " + quote);
+		this.context.register(Conf.class);
+		this.context.refresh();
+		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
+		assertThat(String.valueOf(properties.getQuote()), equalTo(quote));
+	}
+
+	@Test
+	public void escapeCanBeCustomized() {
+		String escape = "~";
+		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
+				"pgcopy.escape: " + escape);
+		this.context.register(Conf.class);
+		this.context.refresh();
+		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
+		assertThat(String.valueOf(properties.getEscape()), equalTo(escape));
 	}
 
 	@Configuration
