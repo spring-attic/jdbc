@@ -7,3 +7,6 @@ include::spring-cloud-starter-stream-source-jdbc/README.adoc[]
 
 ## JDBC Sink
 include::spring-cloud-starter-stream-sink-jdbc/README.adoc[]
+
+## PGCOPY Sink
+include::spring-cloud-starter-stream-sink-pgcopy/README.adoc[]
