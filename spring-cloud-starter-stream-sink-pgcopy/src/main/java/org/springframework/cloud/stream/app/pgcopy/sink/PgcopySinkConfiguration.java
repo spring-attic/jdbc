@@ -19,6 +19,7 @@ package org.springframework.cloud.stream.app.pgcopy.sink;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Collections;
 import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
 
@@ -62,6 +63,11 @@ import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.StringUtils;
 
 /**
  * Configuration class for the PostgreSQL CopyManager.
@@ -102,7 +108,14 @@ public class PgcopySinkConfiguration {
 
 	@Bean
 	@ServiceActivator(inputChannel = "toSink")
-	public MessageHandler datasetSinkMessageHandler(final JdbcTemplate jdbcTemplate) {
+	public MessageHandler datasetSinkMessageHandler(final JdbcTemplate jdbcTemplate,
+	                                                final PlatformTransactionManager platformTransactionManager) {
+
+		final TransactionTemplate txTemplate = new TransactionTemplate(platformTransactionManager);
+
+		if (StringUtils.hasText(properties.getErrorTable())) {
+			verifyErrorTable(jdbcTemplate, txTemplate);
+		}
 
 		StringBuilder columns = new StringBuilder();
 		for (String col : properties.getColumns()) {
@@ -145,32 +158,87 @@ public class PgcopySinkConfiguration {
 				Object payload = message.getPayload();
 				if (payload instanceof Collection<?>) {
 					final Collection<?> payloads = (Collection<?>) payload;
-					logger.debug("Executing batch of size " + payloads.size() + " for " + sql);
+					if (logger.isDebugEnabled()) {
+						logger.debug("Executing batch of size " + payloads.size() + " for " + sql);
+					}
 					try {
-						jdbcTemplate.execute(
-								new ConnectionCallback<Object>() {
-									@Override
-									public Object doInConnection(Connection connection) throws SQLException, DataAccessException {
-										CopyManager cm = new CopyManager((BaseConnection) connection);
-										CopyIn ci = cm.copyIn(sql.toString());
-										for (Object payloadData : (Collection<?>) payloads) {
-											byte[] data = (payloadData+"\n").getBytes();
-											ci.writeToCopy(data, 0, data.length);
-										}
-										long rows = ci.endCopy();
-										logger.debug("Wrote " + rows + " rows");
-										return Long.valueOf(rows);
-									}
+						long rows = doCopy(payloads, txTemplate);
+						if (logger.isDebugEnabled()) {
+							logger.debug("Wrote " + rows + " rows");
+						}
+					}
+					catch (DataAccessException e) {
+						logger.error("Error while copying batch of data: " + e.getMessage());
+						logger.error("Switching to single row copy for current batch");
+						long rows = 0;
+						for (Object singlePayload : payloads) {
+							try {
+								rows = rows + doCopy(Collections.singletonList(singlePayload), txTemplate);
+							}
+							catch (DataAccessException e2) {
+								logger.error("Copy for single row caused error: " + e2.getMessage());
+								logger.error("Bad Data: \n" + singlePayload);
+								if (StringUtils.hasText(properties.getErrorTable())) {
+									writeError(e2, singlePayload);
 								}
-						);
-					} catch (DataAccessException e) {
-						logger.error("Error while copying data: " + e.getMessage());
+							}
+						}
+						if (logger.isDebugEnabled()) {
+							logger.debug("Re-tried batch and wrote " + rows + " rows");
+						}
 					}
 				}
 				else {
 					throw new IllegalStateException("Expected a collection of strings but received " +
 							message.getPayload().getClass().getName());
 				}
+			}
+
+			private void writeError(final DataAccessException exception, final Object payload) {
+				final String message;
+				if (exception.getCause() != null) {
+					message = exception.getCause().getMessage();
+				}
+				else {
+					message = exception.getMessage();
+				}
+				try {
+					txTemplate.execute(new TransactionCallback<Long>() {
+						@Override
+						public Long doInTransaction(TransactionStatus transactionStatus) {
+							jdbcTemplate.update(
+									"insert into " + properties.getErrorTable() + " (table_name, error_message, payload) values (?, ?, ?)",
+									new Object[]{properties.getTableName(), message, payload});
+							return null;
+						}
+					});
+				}
+				catch (DataAccessException e) {
+					logger.error("Writing to error table failed: " + e.getMessage());
+				}
+			}
+
+			private long doCopy(final Collection<?> payloads, TransactionTemplate txTemplate) {
+				Long rows = txTemplate.execute(new TransactionCallback<Long>() {
+					@Override
+					public Long doInTransaction(TransactionStatus transactionStatus) {
+						return jdbcTemplate.execute(
+								new ConnectionCallback<Long>() {
+									@Override
+									public Long doInConnection(Connection connection) throws SQLException, DataAccessException {
+										CopyManager cm = new CopyManager((BaseConnection) connection);
+										CopyIn ci = cm.copyIn(sql.toString());
+										for (Object payloadData : payloads) {
+											byte[] data = (payloadData+"\n").getBytes();
+											ci.writeToCopy(data, 0, data.length);
+										}
+										return Long.valueOf(ci.endCopy());
+									}
+								}
+						);
+					}
+				});
+				return rows;
 			}
 		};
 	}
@@ -231,6 +299,24 @@ public class PgcopySinkConfiguration {
 		return (length > 0 ? " " : "") + option + " " + (value.startsWith("\\") ? "E'" + value: "'" + value) + "'";
 	}
 
+	private void verifyErrorTable(final JdbcTemplate jdbcTemplate,
+	                              final TransactionTemplate txTemplate) {
+		try {
+			txTemplate.execute(new TransactionCallback<Long>() {
+				@Override
+				public Long doInTransaction(TransactionStatus transactionStatus) {
+					jdbcTemplate.update(
+							"insert into " + properties.getErrorTable() + " (table_name, error_message, payload) values (?, ?, ?)",
+							properties.getErrorTable(), "message", "payload");
+					transactionStatus.setRollbackOnly();
+					return null;
+				}
+			});
+		}
+		catch (DataAccessException e) {
+			throw new IllegalStateException("Invalid error table specified", e);
+		}
+	}
 
 	public static class ReaperTask {
 

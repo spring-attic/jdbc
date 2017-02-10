@@ -14,6 +14,10 @@ $$pgcopy.columns$$:: $$The names of the columns that shall receive data.
 $$pgcopy.delimiter$$:: $$Specifies the character that separates columns within each row (line) of the file. The default is a tab character
  in text format, a comma in CSV format. This must be a single one-byte character. Using an escaped value like '\t'
  is allowed.$$ *($$String$$, default: `$$<none>$$`)*
+$$pgcopy.error-table$$:: $$The name of the error table used for writing rows causing errors. The error table should have three columns
+ named "table_name", "error_message" and "payload" large enough to hold potential data values.
+ You can use the following DDL to create this table:
+     'CREATE TABLE ERRORS (TABLE_NAME VARCHAR(255), ERROR_MESSAGE TEXT,PAYLOAD TEXT)'$$ *($$String$$, default: `$$<none>$$`)*
 $$pgcopy.escape$$:: $$Specifies the character that should appear before a data character that matches the QUOTE value. The default is
  the same as the QUOTE value (so that the quoting character is doubled if it appears in the data). This must be
  a single one-byte character. This option is allowed only when using CSV format.$$ *($$Character$$, default: `$$<none>$$`)*
