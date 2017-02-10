@@ -91,6 +91,14 @@ public class PgcopySinkProperties {
 	 */
 	private Character escape;
 
+	/**
+	 * The name of the error table used for writing rows causing errors. The error table should have three columns
+	 * named "table_name", "error_message" and "payload" large enough to hold potential data values.
+	 * You can use the following DDL to create this table:
+	 *     'CREATE TABLE ERRORS (TABLE_NAME VARCHAR(255), ERROR_MESSAGE TEXT,PAYLOAD TEXT)'
+	 */
+	private String errorTable;
+
 
 	public String getTableName() {
 		return tableName;
@@ -171,6 +179,14 @@ public class PgcopySinkProperties {
 
 	public void setEscape(Character escape) {
 		this.escape = escape;
+	}
+
+	public String getErrorTable() {
+		return errorTable;
+	}
+
+	public void setErrorTable(String errorTable) {
+		this.errorTable = errorTable;
 	}
 
 	public static enum Format {
