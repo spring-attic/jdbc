@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2017 the original author or authors.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -183,29 +183,6 @@ public abstract class PgcopySinkIntegrationTests {
 			int quoted = jdbcOperations.queryForObject("select count(*) from names where name = 'Anna\"'", Integer.class);
 			Assert.assertThat(result, is(3));
 			Assert.assertThat(quoted, is(1));
-		}
-	}
-
-	@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
-			"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.error-table=test_errors"})
-	public static class PgcopyErrorsTests extends PgcopySinkIntegrationTests {
-
-		@Test
-		public void testCopyCSV() {
-			try {
-				jdbcOperations.execute(
-						"drop table test_errors");
-				jdbcOperations.execute(
-						"create table test_errors (table_name varchar(255), error_message text,payload text)");
-			}
-			catch (Exception e) {}
-			channels.input().send(MessageBuilder.withPayload("123,Nisse,25").build());
-			channels.input().send(MessageBuilder.withPayload("GARBAGE").build());
-			channels.input().send(MessageBuilder.withPayload("125,Bubba,22").build());
-			int result = jdbcOperations.queryForObject("select count(*) from names", Integer.class);
-			int errors = jdbcOperations.queryForObject("select count(*) from test_errors", Integer.class);
-			Assert.assertThat(result, is(2));
-			Assert.assertThat(errors, is(1));
 		}
 	}
 

@@ -112,6 +112,11 @@ public class PgcopySinkConfiguration {
 	                                                final PlatformTransactionManager platformTransactionManager) {
 
 		final TransactionTemplate txTemplate = new TransactionTemplate(platformTransactionManager);
+
+		if (StringUtils.hasText(properties.getErrorTable())) {
+			verifyErrorTable(jdbcTemplate, txTemplate);
+		}
+
 		StringBuilder columns = new StringBuilder();
 		for (String col : properties.getColumns()) {
 			if (columns.length() > 0) {
@@ -173,7 +178,6 @@ public class PgcopySinkConfiguration {
 							catch (DataAccessException e2) {
 								logger.error("Copy for single row caused error: " + e2.getMessage());
 								logger.error("Bad Data: \n" + singlePayload);
-								System.err.println("Bad Data: " + singlePayload);
 								if (StringUtils.hasText(properties.getErrorTable())) {
 									writeError(e2, singlePayload);
 								}
@@ -295,6 +299,24 @@ public class PgcopySinkConfiguration {
 		return (length > 0 ? " " : "") + option + " " + (value.startsWith("\\") ? "E'" + value: "'" + value) + "'";
 	}
 
+	private void verifyErrorTable(final JdbcTemplate jdbcTemplate,
+	                              final TransactionTemplate txTemplate) {
+		try {
+			txTemplate.execute(new TransactionCallback<Long>() {
+				@Override
+				public Long doInTransaction(TransactionStatus transactionStatus) {
+					jdbcTemplate.update(
+							"insert into " + properties.getErrorTable() + " (table_name, error_message, payload) values (?, ?, ?)",
+							properties.getErrorTable(), "message", "payload");
+					transactionStatus.setRollbackOnly();
+					return null;
+				}
+			});
+		}
+		catch (DataAccessException e) {
+			throw new IllegalStateException("Invalid error table specified", e);
+		}
+	}
 
 	public static class ReaperTask {
 
