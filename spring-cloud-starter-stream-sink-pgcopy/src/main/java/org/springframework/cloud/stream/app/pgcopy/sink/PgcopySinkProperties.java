@@ -20,6 +20,7 @@ import javax.validation.constraints.NotNull;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.stream.app.jdbc.SupportsShorthands;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.List;
  */
 @SuppressWarnings("unused")
 @ConfigurationProperties("pgcopy")
+@Validated
 public class PgcopySinkProperties {
 
 	/**

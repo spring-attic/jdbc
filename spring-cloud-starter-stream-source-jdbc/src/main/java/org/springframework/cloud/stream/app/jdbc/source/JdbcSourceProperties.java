@@ -19,6 +19,7 @@ package org.springframework.cloud.stream.app.jdbc.source;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Holds configuration properties for the Jdbc Source module.
@@ -26,6 +27,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Thomas Risberg
  */
 @ConfigurationProperties("jdbc")
+@Validated
 public class JdbcSourceProperties {
 
 	/**
