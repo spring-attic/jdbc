@@ -9,16 +9,11 @@
 	<description>Spring Cloud Stream JDBC App Dependencies</description>
 
 	<parent>
-	<artifactId>spring-cloud-dependencies-parent</artifactId>
+		<artifactId>spring-cloud-dependencies-parent</artifactId>
 		<groupId>org.springframework.cloud</groupId>
 		<version>1.2.1.RELEASE</version>
 		<relativePath />
 	</parent>
-
-	<properties>
-		<hsqldb.version>2.3.3</hsqldb.version>
-		<postgresql.version>9.4-1201-jdbc41</postgresql.version>
-	</properties>
 
 	<dependencyManagement>
 		<dependencies>
@@ -41,18 +36,6 @@
 				<groupId>org.springframework.cloud.stream.app</groupId>
 				<artifactId>jdbc-app-starters-common</artifactId>
 				<version>1.2.1.BUILD-SNAPSHOT</version>
-			</dependency>
-			<dependency>
-				<groupId>org.hsqldb</groupId>
-				<artifactId>hsqldb</artifactId>
-				<scope>test</scope>
-				<version>${hsqldb.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.postgresql</groupId>
-				<artifactId>postgresql</artifactId>
-				<version>${postgresql.version}</version>
-				<scope>runtime</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
