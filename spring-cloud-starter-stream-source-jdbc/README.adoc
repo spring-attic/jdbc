@@ -6,6 +6,20 @@ This source is fully based on the `DataSourceAutoConfiguration`, so refer to the
 http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html[Spring Boot JDBC Support] for more
 information.
 
+== Input
+
+N/A
+
+== Output
+
+=== Headers
+
+* `Content-Type: application/x-java-object`
+
+=== Payload
+
+* `List<Map<String, Object>>`
+
 == Options
 
 The **$$jdbc$$** $$source$$ has the following options:
@@ -37,6 +51,18 @@ for addition `DataSource` properties and `TriggerProperties` and `MaxMessagesPro
 == Build
 
 ```
-$> mvn package
+$ ./mvnw clean install -PgenerateApps
+$ cd apps
+```
+You can find the corresponding binder based projects here.
+You can then cd into one one of the folders and build it:
+```
+$ ./mvnw clean package
+```
+
+== Examples
+
+```
+java -jar jdbc_source.jar --query=<QUERY> [datasource credentials]
 ```
 
