@@ -3,6 +3,20 @@
 
 A module that writes its incoming payload to an RDBMS using the PostgreSQL COPY command.
 
+== Input
+
+=== Headers
+
+=== Payload
+
+* Any
+
+Column expression will be evaluated against the message and the expression will usually be compatible with only one type (such as a Map or bean etc.)
+
+== Output
+
+N/A
+
 == Options 
 
 The **$$jdbc$$** $$sink$$ has the following options:
@@ -41,10 +55,26 @@ NOTE: The module also uses Spring Boot's http://docs.spring.io/spring-boot/docs/
 
 == Build
 
+```
+$ ./mvnw clean install -PgenerateApps
+$ cd apps
+```
+You can find the corresponding binder based projects here.
+You can then cd into one one of the folders and build it:
+```
+$ ./mvnw clean package
+```
+
 For integration tests to run, start a PostgreSQL database on localhost:
 
+```
     docker run -e POSTGRES_PASSWORD=spring -e POSTGRES_DB=test -p 5432:5432 -d postgres:latest
+```
+
+== Examples
 
 ```
-$ mvn clean package
+java -jar pgcopy-sink.jar --tableName=names --columns=name --spring.datasource.driver-class-name=org.mariadb.jdbc.Driver \
+--spring.datasource.url='jdbc:mysql://localhost:3306/test
 ```
+
