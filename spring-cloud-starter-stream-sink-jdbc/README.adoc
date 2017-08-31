@@ -37,8 +37,6 @@ $$spring.datasource.username$$:: $$Login user of the database.$$ *($$String$$, d
 
 NOTE: The module also uses Spring Boot's http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html#boot-features-configure-datasource[DataSource support] for configuring the database connection, so properties like `spring.datasource.url` _etc._ apply.
 
-//end::ref-doc[]
-
 == Build
 
 
@@ -58,3 +56,4 @@ java -jar jdbc-sink.jar --tableName=names --columns=name --spring.datasource.dri
 --spring.datasource.url='jdbc:mysql://localhost:3306/test
 ```
 
+//end::ref-doc[]
