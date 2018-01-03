@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2016-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,10 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionLikeType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+
 /**
  * Integration Tests for JdbcSource. Uses hsqldb as a (real) embedded DB.
  *
@@ -52,6 +56,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 		webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DirtiesContext
 public abstract class JdbcSourceIntegrationTests {
+
+	protected final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Autowired
 	protected Source source;
@@ -66,19 +72,28 @@ public abstract class JdbcSourceIntegrationTests {
 	public static class DefaultBehaviorTests extends JdbcSourceIntegrationTests {
 
 		@Test
-		public void testExtraction() throws InterruptedException {
+		public void testExtraction() throws Exception {
 			Message<?> received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(1L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			Map<?, ?> payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(1, payload.get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(2L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(2, payload.get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(3L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(3, payload.get("ID"));
 		}
 
 	}
@@ -87,13 +102,20 @@ public abstract class JdbcSourceIntegrationTests {
 	public static class SelectAllNoSplitTests extends JdbcSourceIntegrationTests {
 
 		@Test
-		public void testExtraction() throws InterruptedException {
+		public void testExtraction() throws Exception {
 			Message<?> received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(List.class));
-			assertEquals(3, ((List) received.getPayload()).size());
-			assertEquals(1L, ((Map) ((List) received.getPayload()).get(0)).get("ID"));
-			assertEquals("John", ((Map) ((List) received.getPayload()).get(2)).get("NAME"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+
+			CollectionLikeType valueType = TypeFactory.defaultInstance()
+					.constructCollectionLikeType(List.class, Map.class);
+
+			List<Map<?, ?>> payload = this.objectMapper.readValue((String) received.getPayload(), valueType);
+
+			assertEquals(3, payload.size());
+			assertEquals(1, payload.get(0).get("ID"));
+			assertEquals("John", payload.get(2).get("NAME"));
 		}
 
 	}
@@ -102,22 +124,24 @@ public abstract class JdbcSourceIntegrationTests {
 	public static class SelectAllWithDelayTests extends JdbcSourceIntegrationTests {
 
 		@Test
-		public void testExtraction() throws InterruptedException {
+		public void testExtraction() throws Exception {
 			Message<?> received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
-			System.out.println(received);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(1L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			Map<?, ?> payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(1, payload.get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
-			System.out.println(received);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(2L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+			assertEquals(2, payload.get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
-			System.out.println(received);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(3L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+			assertEquals(3, payload.get("ID"));
 			// should not wrap around to the beginning since delay is 60
 			received = messageCollector.forChannel(source.output()).poll(1, TimeUnit.SECONDS);
 			assertNull(received);
@@ -129,24 +153,36 @@ public abstract class JdbcSourceIntegrationTests {
 	public static class SelectAllWithMinDelayTests extends JdbcSourceIntegrationTests {
 
 		@Test
-		public void testExtraction() throws InterruptedException {
+		public void testExtraction() throws Exception {
 			Message<?> received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(1L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			Map<?, ?> payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(1, payload.get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(2L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(2, payload.get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(3L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(3, payload.get("ID"));
 			// should wrap around to the beginning
 			received = messageCollector.forChannel(source.output()).poll(2, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(Map.class));
-			assertEquals(1L, ((Map) received.getPayload()).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+			payload = this.objectMapper.readValue((String) received.getPayload(), Map.class);
+
+			assertEquals(1, payload.get("ID"));
 		}
 
 	}
@@ -159,18 +195,25 @@ public abstract class JdbcSourceIntegrationTests {
 	public static class Select2PerPollNoSplitWithUpdateTests extends JdbcSourceIntegrationTests {
 
 		@Test
-		public void testExtraction() throws InterruptedException {
+		public void testExtraction() throws Exception {
 			Message<?> received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(List.class));
-			assertEquals(2, ((List) received.getPayload()).size());
-			assertEquals(1L, ((Map) ((List) received.getPayload()).get(0)).get("ID"));
-			assertEquals(2L, ((Map) ((List) received.getPayload()).get(1)).get("ID"));
+			assertThat(received.getPayload(), Matchers.instanceOf(String.class));
+
+
+			CollectionLikeType valueType = TypeFactory.defaultInstance()
+					.constructCollectionLikeType(List.class, Map.class);
+
+			List<Map<?, ?>> payload = this.objectMapper.readValue((String) received.getPayload(), valueType);
+
+			assertEquals(2, payload.size());
+			assertEquals(1, payload.get(0).get("ID"));
+			assertEquals(2, payload.get(1).get("ID"));
 			received = messageCollector.forChannel(source.output()).poll(10, TimeUnit.SECONDS);
 			assertNotNull(received);
-			assertThat(received.getPayload(), Matchers.instanceOf(List.class));
-			assertEquals(1, ((List) received.getPayload()).size());
-			assertEquals(3L, ((Map) ((List) received.getPayload()).get(0)).get("ID"));
+			payload = this.objectMapper.readValue((String) received.getPayload(), valueType);
+			assertEquals(1, payload.size());
+			assertEquals(3, payload.get(0).get("ID"));
 		}
 
 	}

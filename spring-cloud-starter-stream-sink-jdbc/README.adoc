@@ -17,23 +17,40 @@ Column expression will be evaluated against the message and the expression will 
 
 N/A
 
-== Options 
+== Options
 
 The **$$jdbc$$** $$sink$$ has the following options:
 
 //tag::configuration-properties[]
-$$jdbc.columns$$:: $$The names of the columns that shall receive data, as a set of column[:SpEL] mappings.
- Also used at initialization time to issue the DDL.$$ *($$java.util.Map<java.lang.String,java.lang.String>$$, default: `$$<none>$$`)*
+$$jdbc.columns$$:: $$The comma separated colon-based pairs of column names and SpEL expressions for values to insert/update.
+ Names are used at initialization time to issue the DDL.$$ *($$String$$, default: `$$payload:toString()$$`)*
 $$jdbc.initialize$$:: $$'true', 'false' or the location of a custom initialization script for the table.$$ *($$String$$, default: `$$false$$`)*
 $$jdbc.table-name$$:: $$The name of the table to write into.$$ *($$String$$, default: `$$messages$$`)*
-$$spring.datasource.data$$:: $$Data (DML) script resource references.$$ *($$java.util.List<java.lang.String>$$, default: `$$<none>$$`)*
+$$spring.datasource.data$$:: $$Data (DML) script resource references.$$ *($$List<String>$$, default: `$$<none>$$`)*
 $$spring.datasource.driver-class-name$$:: $$Fully qualified name of the JDBC driver. Auto-detected based on the URL by default.$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.initialize$$:: $$Populate the database using 'data.sql'.$$ *($$Boolean$$, default: `$$true$$`)*
+$$spring.datasource.initialization-mode$$:: $$Initialize the datasource using available DDL and DML scripts.$$ *($$DataSourceInitializationMode$$, default: `$$embedded$$`, possible values: `ALWAYS`,`EMBEDDED`,`NEVER`)*
 $$spring.datasource.password$$:: $$Login password of the database.$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.schema$$:: $$Schema (DDL) script resource references.$$ *($$java.util.List<java.lang.String>$$, default: `$$<none>$$`)*
+$$spring.datasource.schema$$:: $$Schema (DDL) script resource references.$$ *($$List<String>$$, default: `$$<none>$$`)*
 $$spring.datasource.url$$:: $$JDBC url of the database.$$ *($$String$$, default: `$$<none>$$`)*
-$$spring.datasource.username$$:: $$Login user of the database.$$ *($$String$$, default: `$$<none>$$`)*
+$$spring.datasource.username$$:: $$Login username of the database.$$ *($$String$$, default: `$$<none>$$`)*
 //end::configuration-properties[]
+
+The `jdbc.columns` property represents pairs of `COLUMN_NAME[:EXPRESSION_FOR_VALUE]` where `EXPRESSION_FOR_VALUE` (together with the colon) is optional.
+In this case the value is evaluated via generated expression like `payload.COLUMN_NAME`, so this way we have a direct mapping from object properties to the table column.
+For example we have a JSON payload like:
+```
+{
+  "name": "My Name"
+  "address": {
+     "city": "Big City",
+     "street": "Narrow Alley"
+  }
+}
+```
+So, we can insert it into the table with `name`, `city` and `street` structure using the configuration:
+```
+--jdbc.columns=name,city:address.city,street:address.street
+```
 
 NOTE: The module also uses Spring Boot's http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html#boot-features-configure-datasource[DataSource support] for configuring the database connection, so properties like `spring.datasource.url` _etc._ apply.
 
@@ -52,7 +69,7 @@ $ ./mvnw clean package
 == Examples
 
 ```
-java -jar jdbc-sink.jar --tableName=names --columns=name --spring.datasource.driver-class-name=org.mariadb.jdbc.Driver \
+java -jar jdbc-sink.jar --jdbc.tableName=names --jdbc.columns=name --spring.datasource.driver-class-name=org.mariadb.jdbc.Driver \
 --spring.datasource.url='jdbc:mysql://localhost:3306/test
 ```
 

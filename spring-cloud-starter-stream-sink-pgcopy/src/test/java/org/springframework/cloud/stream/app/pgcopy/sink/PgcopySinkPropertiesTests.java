@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,13 @@ import org.junit.rules.ExpectedException;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.util.EnvironmentTestUtils;
+import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * @author Thomas Risberg
+ * @author Artem Bilan
  */
 public class PgcopySinkPropertiesTests {
 
@@ -54,7 +55,7 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void tableNameIsRequired() {
 		this.thrown.expect(BeanCreationException.class);
-		this.thrown.expectMessage("Field error in object 'pgcopy' on field 'tableName': rejected value [null]");
+		this.thrown.expectMessage("Failed to bind properties under 'pgcopy' to org.springframework.cloud.stream.app.pgcopy.sink.PgcopySinkProperties");
 		this.context.register(Conf.class);
 		this.context.refresh();
 	}
@@ -62,7 +63,8 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void tableNameCanBeCustomized() {
 		String table = "TEST_DATA";
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name:" + table);
+		TestPropertyValues.of("pgcopy.table-name:" + table)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -71,7 +73,8 @@ public class PgcopySinkPropertiesTests {
 
 	@Test
 	public void formatDefaultsToText() {
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test");
+		TestPropertyValues.of("pgcopy.table-name: test")
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -81,7 +84,8 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void formatCanBeCustomized() {
 		String format = "CSV";
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format:" + format);
+		TestPropertyValues.of("pgcopy.table-name: test", "pgcopy.format:" + format)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -91,8 +95,10 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void nullCanBeCustomized() {
 		String nullString = "@#$";
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
-				"pgcopy.null-string: " + nullString);
+		TestPropertyValues.of("pgcopy.table-name: test",
+				"pgcopy.format: CSV",
+				"pgcopy.null-string: " + nullString)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -102,8 +108,10 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void delimiterCanBeCustomized() {
 		String delimiter = "|";
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
-				"pgcopy.delimiter: " + delimiter);
+		TestPropertyValues.of("pgcopy.table-name: test",
+				"pgcopy.format: CSV",
+				"pgcopy.delimiter: " + delimiter)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -113,8 +121,10 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void quoteCanBeCustomized() {
 		String quote = "'";
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
-				"pgcopy.quote: " + quote);
+		TestPropertyValues.of("pgcopy.table-name: test",
+				"pgcopy.format: CSV",
+				"pgcopy.quote: " + quote)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -124,8 +134,10 @@ public class PgcopySinkPropertiesTests {
 	@Test
 	public void escapeCanBeCustomized() {
 		String escape = "~";
-		EnvironmentTestUtils.addEnvironment(this.context, "pgcopy.table-name: test", "pgcopy.format: CSV",
-				"pgcopy.escape: " + escape);
+		TestPropertyValues.of("pgcopy.table-name: test",
+				"pgcopy.format: CSV",
+				"pgcopy.escape: " + escape)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		PgcopySinkProperties properties = this.context.getBean(PgcopySinkProperties.class);
@@ -135,5 +147,7 @@ public class PgcopySinkPropertiesTests {
 	@Configuration
 	@EnableConfigurationProperties(PgcopySinkProperties.class)
 	static class Conf {
+
 	}
+
 }

@@ -56,7 +56,6 @@ import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
-import org.springframework.jdbc.support.nativejdbc.Jdbc4NativeJdbcExtractor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -287,7 +286,6 @@ public class PgcopySinkConfiguration {
 	@Bean
 	public JdbcTemplate jdbcTemplate(DataSource dataSource) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.setNativeJdbcExtractor(new Jdbc4NativeJdbcExtractor());
 		return jt;
 	}
 

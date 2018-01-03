@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,24 @@
 
 package org.springframework.cloud.stream.app.jdbc.sink;
 
-import java.util.Collections;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.cloud.stream.app.jdbc.SupportsShorthands;
+import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
 
 
 /**
  * Holds configuration properties for the Jdbc Sink module.
  *
  * @author Eric Bottard
+ * @author Artem Bilan
  */
 @ConfigurationProperties("jdbc")
 public class JdbcSinkProperties {
+
+	@Autowired
+	private ShorthandMapConverter shorthandMapConverter;
 
 	/**
 	 * The name of the table to write into.
@@ -37,38 +41,47 @@ public class JdbcSinkProperties {
 	private String tableName = "messages";
 
 	/**
-	 * The names of the columns that shall receive data, as a set of column[:SpEL] mappings.
-	 * Also used at initialization time to issue the DDL.
+	 * The comma separated colon-based pairs of column names and SpEL expressions for values to insert/update.
+	 * Names are used at initialization time to issue the DDL.
 	 */
-	private Map<String, String> columns = Collections.singletonMap("payload", "payload.toString()");
+	private String columns = "payload:toString()";
 
 	/**
 	 * 'true', 'false' or the location of a custom initialization script for the table.
 	 */
 	private String initialize = "false";
 
+	private Map<String, String> columnsMap;
+
 	public String getTableName() {
-		return tableName;
+		return this.tableName;
 	}
 
 	public void setTableName(String tableName) {
 		this.tableName = tableName;
 	}
 
-	public Map<String, String> getColumns() {
-		return columns;
+	public String getColumns() {
+		return this.columns;
 	}
 
-	@SupportsShorthands
-	public void setColumns(Map<String, String> columns) {
+	public void setColumns(String columns) {
 		this.columns = columns;
 	}
 
 	public String getInitialize() {
-		return initialize;
+		return this.initialize;
 	}
 
 	public void setInitialize(String initialize) {
 		this.initialize = initialize;
 	}
+
+	Map<String, String> getColumnsMap() {
+		if (this.columnsMap == null) {
+			this.columnsMap = this.shorthandMapConverter.convert(this.columns);
+		}
+		return this.columnsMap;
+	}
+
 }

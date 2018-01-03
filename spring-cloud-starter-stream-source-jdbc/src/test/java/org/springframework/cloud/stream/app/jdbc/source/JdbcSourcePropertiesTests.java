@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2016-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,13 @@ import org.junit.rules.ExpectedException;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.util.EnvironmentTestUtils;
+import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * @author Thomas Risberg
+ * @author Artem Bilan
  */
 public class JdbcSourcePropertiesTests {
 
@@ -54,7 +55,7 @@ public class JdbcSourcePropertiesTests {
 	@Test
 	public void queryIsRequired() {
 		this.thrown.expect(BeanCreationException.class);
-		this.thrown.expectMessage("Field error in object 'jdbc' on field 'query': rejected value [null]");
+		this.thrown.expectMessage("Failed to bind properties under 'jdbc' to org.springframework.cloud.stream.app.jdbc.source.JdbcSourceProperties");
 		this.context.register(Conf.class);
 		this.context.refresh();
 	}
@@ -62,7 +63,8 @@ public class JdbcSourcePropertiesTests {
 	@Test
 	public void queryCanBeCustomized() {
 		String query = "select foo from bar";
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.query:" + query);
+		TestPropertyValues.of("jdbc.query:" + query)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		JdbcSourceProperties properties = this.context.getBean(JdbcSourceProperties.class);
@@ -71,9 +73,9 @@ public class JdbcSourcePropertiesTests {
 
 	@Test
 	public void updateCanBeCustomized() {
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.query:select foo from bar where baz < 1");
 		String update = "update bar set baz=1 where foo in (:foo)";
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.update:" + update);
+		TestPropertyValues.of("jdbc.query:select foo from bar where baz < 1", "jdbc.update:" + update)
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		JdbcSourceProperties properties = this.context.getBean(JdbcSourceProperties.class);
@@ -82,7 +84,8 @@ public class JdbcSourcePropertiesTests {
 
 	@Test
 	public void splitDefaultsToTrue() {
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.query:select foo from bar");
+		TestPropertyValues.of("jdbc.query:select foo from bar")
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		JdbcSourceProperties properties = this.context.getBean(JdbcSourceProperties.class);
@@ -91,8 +94,8 @@ public class JdbcSourcePropertiesTests {
 
 	@Test
 	public void splitCanBeCustomized() {
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.query:select foo from bar");
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.split:false");
+		TestPropertyValues.of("jdbc.query:select foo from bar", "jdbc.split:false")
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		JdbcSourceProperties properties = this.context.getBean(JdbcSourceProperties.class);
@@ -101,8 +104,8 @@ public class JdbcSourcePropertiesTests {
 
 	@Test
 	public void maxRowsPerPollCanBeCustomized() {
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.query:select foo from bar");
-		EnvironmentTestUtils.addEnvironment(this.context, "jdbc.maxRowsPerPoll:15");
+		TestPropertyValues.of("jdbc.query:select foo from bar", "jdbc.maxRowsPerPoll:15")
+				.applyTo(this.context);
 		this.context.register(Conf.class);
 		this.context.refresh();
 		JdbcSourceProperties properties = this.context.getBean(JdbcSourceProperties.class);
@@ -112,5 +115,7 @@ public class JdbcSourcePropertiesTests {
 	@Configuration
 	@EnableConfigurationProperties(JdbcSourceProperties.class)
 	static class Conf {
+
 	}
+
 }

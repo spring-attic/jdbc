@@ -30,7 +30,7 @@ import org.postgresql.util.PSQLException;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.util.EnvironmentTestUtils;
+import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.cloud.stream.app.pgcopy.test.PostgresTestSupport;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
@@ -43,14 +43,17 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  * Integration Tests testing bad error table specified for PgcopySink. Only runs if PostgreSQL database is available.
  *
  * @author Thomas Risberg
+ * @author Artem Bilan
  */
 public class PgcopyBadErrorTableIntegrationTests {
 
 	@ClassRule
 	public static PostgresTestSupport postgresAvailable = new PostgresTestSupport();
 
-	private String[] env = {"pgcopy.tableName=names", "pgcopy.columns=id,name,age", "pgcopy.format=CSV"};
-	private String[] jdbc = {};
+	private String[] env = { "pgcopy.tableName=names", "pgcopy.columns=id,name,age", "pgcopy.format=CSV" };
+
+	private String[] jdbc = { };
+
 	private Properties appProperties = new Properties();
 
 	@Before
@@ -58,7 +61,8 @@ public class PgcopyBadErrorTableIntegrationTests {
 		try {
 			appProperties = PropertiesLoaderUtils.loadAllProperties("application.properties");
 		}
-		catch (IOException e) {}
+		catch (IOException e) {
+		}
 		List<String> jdbcProperties = new ArrayList<>();
 		for (Object key : appProperties.keySet()) {
 			jdbcProperties.add(key + "=" + appProperties.get(key));
@@ -69,9 +73,10 @@ public class PgcopyBadErrorTableIntegrationTests {
 	@Test
 	public void testBadErrorTableName() {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		EnvironmentTestUtils.addEnvironment(context, jdbc);
-		EnvironmentTestUtils.addEnvironment(context, env);
-		EnvironmentTestUtils.addEnvironment(context, "pgcopy.error-table=missing");
+		TestPropertyValues.of(this.jdbc)
+				.and("pgcopy.error-table=missing")
+				.and(this.env)
+				.applyTo(context);
 		context.register(PgcopySinkApplication.class);
 		try {
 			context.refresh();
@@ -111,7 +116,8 @@ public class PgcopyBadErrorTableIntegrationTests {
 			jdbcOperations.execute(
 					"drop table test_errors");
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+		}
 		try {
 			jdbcOperations.execute(
 					"create table test_errors (table_name varchar(255), error_message text)");
@@ -120,9 +126,10 @@ public class PgcopyBadErrorTableIntegrationTests {
 			throw new IllegalStateException("Error creating table", e);
 		}
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		EnvironmentTestUtils.addEnvironment(context, jdbc);
-		EnvironmentTestUtils.addEnvironment(context, env);
-		EnvironmentTestUtils.addEnvironment(context, "pgcopy.error-table=test_errors");
+		TestPropertyValues.of(this.jdbc)
+				.and("pgcopy.error-table=test_errors")
+				.and(this.env)
+				.applyTo(context);
 		context.register(PgcopySinkApplication.class);
 		try {
 			context.refresh();
@@ -152,8 +159,11 @@ public class PgcopyBadErrorTableIntegrationTests {
 
 	@SpringBootApplication
 	public static class PgcopySinkApplication {
+
 		public static void main(String[] args) {
 			SpringApplication.run(PgcopySinkApplication.class, args);
 		}
+
 	}
+
 }
