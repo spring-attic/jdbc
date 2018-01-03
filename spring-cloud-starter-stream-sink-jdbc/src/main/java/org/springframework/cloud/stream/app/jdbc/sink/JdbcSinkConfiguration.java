@@ -84,7 +84,7 @@ public class JdbcSinkConfiguration {
 	@ServiceActivator(autoStartup = "true", inputChannel = Sink.INPUT)
 	public JdbcMessageHandler jdbcMessageHandler(DataSource dataSource) {
 		final MultiValueMap<String, Expression> columnExpressionVariations = new LinkedMultiValueMap<>();
-		for (Map.Entry<String, String> entry : properties.getColumns().entrySet()) {
+		for (Map.Entry<String, String> entry : this.properties.getColumnsMap().entrySet()) {
 			String value = entry.getValue();
 			columnExpressionVariations.add(entry.getKey(), spelExpressionParser.parseExpression(value));
 			if (!value.startsWith("payload")) {
@@ -156,25 +156,18 @@ public class JdbcSinkConfiguration {
 		dataSourceInitializer.setDatabasePopulator(databasePopulator);
 		if ("true".equals(properties.getInitialize())) {
 			databasePopulator.addScript(new DefaultInitializationScriptResource(properties.getTableName(),
-					properties.getColumns().keySet()));
+					properties.getColumnsMap().keySet()));
 		} else {
 			databasePopulator.addScript(resourceLoader.getResource(properties.getInitialize()));
 		}
 		return dataSourceInitializer;
 	}
 
-	/*
-	 * This is needed to prevent a circular dependency issue with the creation of the converter.
-	 */
-	public static class Nested {
 
-		@Bean
-		@ConfigurationPropertiesBinding
-		public ShorthandMapConverter shorthandMapConverter() {
+	@Bean
+	public static ShorthandMapConverter shorthandMapConverter() {
 			return new ShorthandMapConverter();
 		}
-
-	}
 
 	@PostConstruct
 	public void afterPropertiesSet() {

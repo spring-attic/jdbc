@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,11 @@
 
 package org.springframework.cloud.stream.app.jdbc;
 
-import org.springframework.core.convert.TypeDescriptor;
-import org.springframework.core.convert.converter.ConditionalConverter;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.util.Assert;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.util.Assert;
 
 /**
  * A Converter from String to Map that accepts csv {@literal key:value} pairs
@@ -33,8 +31,9 @@ import java.util.Map;
  * useful if said mappings are to be used for SpEL for example.</p>
  *
  * @author Eric Bottard
+ * @author Artem Bilan
  */
-public class ShorthandMapConverter implements Converter<String, Map<String, String>>, ConditionalConverter {
+public class ShorthandMapConverter implements Converter<String, Map<String, String>> {
 
 
 	@Override
@@ -60,8 +59,4 @@ public class ShorthandMapConverter implements Converter<String, Map<String, Stri
 		return result;
 	}
 
-	@Override
-	public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
-		return targetType.hasAnnotation(SupportsShorthands.class);
-	}
 }

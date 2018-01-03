@@ -16,14 +16,13 @@
 
 package org.springframework.cloud.stream.app.pgcopy.sink;
 
+import java.util.Collections;
+import java.util.List;
+
 import javax.validation.constraints.NotNull;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.cloud.stream.app.jdbc.SupportsShorthands;
 import org.springframework.validation.annotation.Validated;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Used to configure the pgcopy sink module options that are related to writing using the PostgreSQL CopyManager API.
@@ -114,7 +113,6 @@ public class PgcopySinkProperties {
 		return columns;
 	}
 
-	@SupportsShorthands
 	public void setColumns(List<String> columns) {
 		this.columns = columns;
 	}
