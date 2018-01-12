@@ -77,7 +77,7 @@ public class JdbcSinkProperties {
 		this.initialize = initialize;
 	}
 
-	public Map<String, String> getColumnsMap() {
+	Map<String, String> getColumnsMap() {
 		if (this.columnsMap == null) {
 			this.columnsMap = this.shorthandMapConverter.convert(this.columns);
 		}

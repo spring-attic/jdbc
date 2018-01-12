@@ -104,6 +104,7 @@ public abstract class JdbcSinkIntegrationTests {
 	public static class VaryingInsertTests extends JdbcSinkIntegrationTests {
 
 		@Test
+		@SuppressWarnings("unchecked")
 		public void testInsertion() {
 			Payload a = new Payload("hello", 42);
 			Payload b = new Payload("world", 12);
