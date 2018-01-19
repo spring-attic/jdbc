@@ -1,5 +1,6 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2018 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -49,6 +50,7 @@ import org.springframework.tuple.TupleBuilder;
  * @author Eric Bottard
  * @author Thomas Risberg
  * @author Artem Bilan
+ * @author Robert St. John
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -72,6 +74,7 @@ public abstract class JdbcSinkIntegrationTests {
 			String result = jdbcOperations.queryForObject("select payload from messages", String.class);
 			Assert.assertThat(result, is("hello42"));
 		}
+
 	}
 
 	@TestPropertySource(properties = "jdbc.columns=a,b")
@@ -84,6 +87,7 @@ public abstract class JdbcSinkIntegrationTests {
 			Payload result = jdbcOperations.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
 			Assert.assertThat(result, Matchers.samePropertyValuesAs(sent));
 		}
+
 	}
 
 	// annotation below relies on java.util.Properties so backslash needs to be doubled
@@ -98,6 +102,7 @@ public abstract class JdbcSinkIntegrationTests {
 			Payload result = jdbcOperations.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
 			Assert.assertThat(result, Matchers.samePropertyValuesAs(expected));
 		}
+
 	}
 
 	@TestPropertySource(properties = "jdbc.columns=a,b")
@@ -122,6 +127,7 @@ public abstract class JdbcSinkIntegrationTests {
 					samePropertyValuesAs(d)
 			));
 		}
+
 	}
 
 	@TestPropertySource(properties = { "jdbc.tableName=no_script", "jdbc.initialize=true", "jdbc.columns=a,b" })
@@ -134,6 +140,7 @@ public abstract class JdbcSinkIntegrationTests {
 			Payload result = jdbcOperations.query("select a, b from no_script", new BeanPropertyRowMapper<>(Payload.class)).get(0);
 			Assert.assertThat(result, Matchers.samePropertyValuesAs(sent));
 		}
+
 	}
 
 	@TestPropertySource(properties = { "jdbc.tableName=foobar", "jdbc.initialize=classpath:explicit-script.sql", "jdbc.columns=a,b" })
@@ -146,6 +153,7 @@ public abstract class JdbcSinkIntegrationTests {
 			Payload result = jdbcOperations.query("select a, b from foobar", new BeanPropertyRowMapper<>(Payload.class)).get(0);
 			Assert.assertThat(result, Matchers.samePropertyValuesAs(sent));
 		}
+
 	}
 
 	@TestPropertySource(properties = "jdbc.columns=a,b")
@@ -172,6 +180,7 @@ public abstract class JdbcSinkIntegrationTests {
 			Assert.assertThat(namedParameterJdbcOperations.queryForObject(
 					"select count(*) from messages where a = :a and b IS NULL", mapC, Integer.class), is(1));
 		}
+
 	}
 
 	@TestPropertySource(properties = "jdbc.columns=a,b")
@@ -195,6 +204,7 @@ public abstract class JdbcSinkIntegrationTests {
 					"select count(*) from messages where a = ? and b IS NULL",
 					Integer.class, tupleC.getString("a")), is(1));
 		}
+
 	}
 
 	@TestPropertySource(properties = "jdbc.columns=a,b")
@@ -218,6 +228,22 @@ public abstract class JdbcSinkIntegrationTests {
 					"select count(*) from messages where a = ? and b IS NULL",
 					Integer.class, "hello3"), is(1));
 		}
+
+	}
+
+	@TestPropertySource(properties = "jdbc.columns=a: new StringBuilder(payload.a).reverse().toString(), b")
+	public static class UnqualifiableColumnExpressionTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void doesNotFailParsingUnqualifiableExpression() {
+
+			// if the app initializes, the test condition passes, but go ahead and apply the column expression anyway
+			channels.input().send(MessageBuilder.withPayload(new Payload("desrever", 123)).build());
+
+			Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages where a = ? and b = ?",
+					Integer.class, "reversed", 123), is(1));
+		}
+
 	}
 
 	public static class Payload {
