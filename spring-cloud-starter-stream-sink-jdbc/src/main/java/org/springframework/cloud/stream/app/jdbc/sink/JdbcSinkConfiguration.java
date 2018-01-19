@@ -40,6 +40,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
+import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.expression.ExpressionUtils;
@@ -66,9 +67,74 @@ import com.fasterxml.jackson.databind.JsonNode;
 @EnableConfigurationProperties(JdbcSinkProperties.class)
 public class JdbcSinkConfiguration {
 
+	private static class ParameterFactory implements SqlParameterSourceFactory {
+
+		private final MultiValueMap<String, Expression> columnExpressions;
+		private final EvaluationContext context;
+
+		ParameterFactory(MultiValueMap<String, Expression> columnExpressions, EvaluationContext context) {
+			this.columnExpressions = columnExpressions;
+			this.context = context;
+		}
+
+		@Override
+		public SqlParameterSource createParameterSource(Object o) {
+			if (!(o instanceof Message)) {
+				throw new IllegalArgumentException("Unable to handle type " + o.getClass().getName());
+			}
+			Message<?> message = (Message<?>) o;
+			MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+			for (String key : columnExpressions.keySet()) {
+				List<Expression> spels = columnExpressions.get(key);
+				Object value = NOT_SET;
+				EvaluationException lastException = null;
+				for (Expression spel : spels) {
+					try {
+						value = spel.getValue(context, message);
+						break;
+					}
+					catch (EvaluationException e) {
+						lastException = e;
+					}
+				}
+				if (value == NOT_SET) {
+					if (lastException != null) {
+						logger.info("Could not find value for column '" + key + "': " + lastException.getMessage());
+					}
+					parameterSource.addValue(key, null);
+				}
+				else {
+					if (value instanceof JsonPropertyAccessor.ToStringFriendlyJsonNode) {
+						// Need to do some reflection until we have a getter for the Node
+						DirectFieldAccessor dfa = new DirectFieldAccessor(value);
+						JsonNode node = (JsonNode) dfa.getPropertyValue("node");
+						Object valueToUse;
+						if (node == null || node.isNull()) {
+							valueToUse = null;
+						}
+						else if (node.isNumber()) {
+							valueToUse = node.numberValue();
+						}
+						else if (node.isBoolean()) {
+							valueToUse = node.booleanValue();
+						}
+						else {
+							valueToUse = node.textValue();
+						}
+						parameterSource.addValue(key, valueToUse);
+					}
+					else {
+						parameterSource.addValue(key, value);
+					}
+				}
+			}
+			return parameterSource;
+		}
+	}
+
 	private static final Log logger = LogFactory.getLog(JdbcSinkConfiguration.class);
 
-	public static final Object NOT_SET = new Object();
+	private static final Object NOT_SET = new Object();
 
 	private SpelExpressionParser spelExpressionParser = new SpelExpressionParser();
 
@@ -84,80 +150,26 @@ public class JdbcSinkConfiguration {
 	@ServiceActivator(autoStartup = "true", inputChannel = Sink.INPUT)
 	public JdbcMessageHandler jdbcMessageHandler(DataSource dataSource) {
 		final MultiValueMap<String, Expression> columnExpressionVariations = new LinkedMultiValueMap<>();
-		for (Map.Entry<String, String> entry : this.properties.getColumnsMap().entrySet()) {
+		for (Map.Entry<String, String> entry : properties.getColumnsMap().entrySet()) {
 			String value = entry.getValue();
 			columnExpressionVariations.add(entry.getKey(), spelExpressionParser.parseExpression(value));
 			if (!value.startsWith("payload")) {
-				columnExpressionVariations.add(entry.getKey(), spelExpressionParser.parseExpression("payload." + value));
+				String qualified = "payload." + value;
+				try {
+					columnExpressionVariations.add(entry.getKey(), spelExpressionParser.parseExpression(qualified));
+				}
+				catch (SpelParseException e) {
+					logger.info("failed to parse qualified fallback expression " + qualified +
+						"; be sure your expression uses the 'payload.' prefix where necessary");
+				}
 			}
 		}
 		JdbcMessageHandler jdbcMessageHandler = new JdbcMessageHandler(dataSource,
 				generateSql(properties.getTableName(), columnExpressionVariations.keySet()));
-		jdbcMessageHandler.setSqlParameterSourceFactory(sqlParameterSourceFactory(columnExpressionVariations));
+		SqlParameterSourceFactory parameterSourceFactory = new ParameterFactory(
+				columnExpressionVariations, evaluationContext);
+		jdbcMessageHandler.setSqlParameterSourceFactory(parameterSourceFactory);
 		return jdbcMessageHandler;
-	}
-
-
-	private SqlParameterSourceFactory sqlParameterSourceFactory(
-			MultiValueMap<String, Expression> columnExpressionVariations) {
-
-
-		return new SqlParameterSourceFactory() {
-
-			@Override
-			public SqlParameterSource createParameterSource(Object o) {
-				if (!(o instanceof Message)) {
-					throw new IllegalArgumentException("Unable to handle type " + o.getClass().getName());
-				}
-				Message<?> message = (Message<?>) o;
-				MapSqlParameterSource parameterSource = new MapSqlParameterSource();
-				for (String key : columnExpressionVariations.keySet()) {
-					List<Expression> spels = columnExpressionVariations.get(key);
-					Object value = NOT_SET;
-					EvaluationException lastException = null;
-					for (Expression spel : spels) {
-						try {
-							value = spel.getValue(JdbcSinkConfiguration.this.evaluationContext, message);
-							break;
-						}
-						catch (EvaluationException e) {
-							lastException = e;
-						}
-					}
-					if (value == NOT_SET) {
-						if (lastException != null) {
-							logger.info("Could not find value for column '" + key + "': " + lastException.getMessage());
-						}
-						parameterSource.addValue(key, null);
-					}
-					else {
-						if (value instanceof JsonPropertyAccessor.ToStringFriendlyJsonNode) {
-							// Need to do some reflection until we have a getter for the Node
-							DirectFieldAccessor dfa = new DirectFieldAccessor(value);
-							JsonNode node = (JsonNode) dfa.getPropertyValue("node");
-							Object valueToUse;
-							if (node == null || node.isNull()) {
-								valueToUse = null;
-							}
-							else if (node.isNumber()) {
-								valueToUse = node.numberValue();
-							}
-							else if (node.isBoolean()) {
-								valueToUse = node.booleanValue();
-							}
-							else {
-								valueToUse = node.textValue();
-							}
-							parameterSource.addValue(key, valueToUse);
-						}
-						else {
-							parameterSource.addValue(key, value);
-						}
-					}
-				}
-				return parameterSource;
-			}
-		};
 	}
 
 	@ConditionalOnProperty("jdbc.initialize")
@@ -177,7 +189,6 @@ public class JdbcSinkConfiguration {
 		}
 		return dataSourceInitializer;
 	}
-
 
 	@Bean
 	public static ShorthandMapConverter shorthandMapConverter() {
@@ -201,10 +212,9 @@ public class JdbcSinkConfiguration {
 				questionMarks.append(", ");
 			}
 			builder.append(column);
-			questionMarks.append(':' + column);
+			questionMarks.append(':').append(column);
 		}
 		builder.append(questionMarks).append(")");
 		return builder.toString();
 	}
-
 }

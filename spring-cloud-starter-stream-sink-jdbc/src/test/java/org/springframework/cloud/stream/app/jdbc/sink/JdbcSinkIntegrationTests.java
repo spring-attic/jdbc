@@ -220,6 +220,20 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 	}
 
+	@TestPropertySource(properties = "jdbc.columns=a: new StringBuilder(payload.a).reverse().toString(), b")
+	public static class UnqualifiableColumnExpressionTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void doesNotFailParsingUnqualifiableExpression() {
+
+			// if the app initializes, the test condition passes, but go ahead and apply the column expression anyway
+			channels.input().send(MessageBuilder.withPayload(new Payload("desrever", 123)).build());
+
+			Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages where a = ? and b = ?",
+				Integer.class, "reversed", 123), is(1));
+		}
+	}
+
 	public static class Payload {
 
 		private String a;
