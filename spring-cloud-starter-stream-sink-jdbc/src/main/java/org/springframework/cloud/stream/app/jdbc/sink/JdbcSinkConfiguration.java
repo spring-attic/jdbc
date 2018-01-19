@@ -217,5 +217,4 @@ public class JdbcSinkConfiguration {
 		builder.append(questionMarks).append(")");
 		return builder.toString();
 	}
-
 }
