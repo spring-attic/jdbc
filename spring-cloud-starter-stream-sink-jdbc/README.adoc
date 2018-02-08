@@ -23,7 +23,7 @@ The **$$jdbc$$** $$sink$$ has the following options:
 
 //tag::configuration-properties[]
 $$jdbc.columns$$:: $$The comma separated colon-based pairs of column names and SpEL expressions for values to insert/update.
- Names are used at initialization time to issue the DDL.$$ *($$String$$, default: `$$payload:toString()$$`)*
+ Names are used at initialization time to issue the DDL.$$ *($$String$$, default: `$$payload:payload.toString()$$`)*
 $$jdbc.initialize$$:: $$'true', 'false' or the location of a custom initialization script for the table.$$ *($$String$$, default: `$$false$$`)*
 $$jdbc.table-name$$:: $$The name of the table to write into.$$ *($$String$$, default: `$$messages$$`)*
 $$spring.datasource.data$$:: $$Data (DML) script resource references.$$ *($$List<String>$$, default: `$$<none>$$`)*

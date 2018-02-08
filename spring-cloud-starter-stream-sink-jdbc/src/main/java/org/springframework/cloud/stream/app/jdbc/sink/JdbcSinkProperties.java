@@ -44,7 +44,7 @@ public class JdbcSinkProperties {
 	 * The comma separated colon-based pairs of column names and SpEL expressions for values to insert/update.
 	 * Names are used at initialization time to issue the DDL.
 	 */
-	private String columns = "payload:toString()";
+	private String columns = "payload:payload.toString()";
 
 	/**
 	 * 'true', 'false' or the location of a custom initialization script for the table.
