@@ -2,9 +2,7 @@
 = JDBC Source
 
 This source polls data from an RDBMS.
-This source is fully based on the `DataSourceAutoConfiguration`, so refer to the
-http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html[Spring Boot JDBC Support] for more
-information.
+This source is fully based on the `DataSourceAutoConfiguration`, so refer to the http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html[Spring Boot JDBC Support] for more information.
 
 == Input
 
@@ -18,7 +16,7 @@ N/A
 
 === Payload
 
-* `List<Map<String, Object>>`
+* `Map<String, Object>` when `jdbc.split == true` (default) and `List<Map<String, Object>>` otherwise
 
 == Options
 
