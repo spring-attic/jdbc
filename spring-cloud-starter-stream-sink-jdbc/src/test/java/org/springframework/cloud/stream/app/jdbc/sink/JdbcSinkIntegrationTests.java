@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 the original author or authors.
+ * Copyright 2015-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,6 +50,7 @@ import org.springframework.tuple.TupleBuilder;
  * @author Thomas Risberg
  * @author Artem Bilan
  * @author Robert St. John
+ * @author Oliver Flasch
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -77,6 +77,40 @@ public abstract class JdbcSinkIntegrationTests {
 
 	}
 
+	@TestPropertySource(properties = "jdbc.batchSize=1000")
+	public static class SimpleBatchInsertTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void testBatchInsertion() {
+			final int numberOfInserts = 5000;
+			Payload sent = new Payload("hello", 42);
+			for (int i = 0; i < numberOfInserts; i++) {
+				channels.input().send(MessageBuilder.withPayload(sent).build());
+			}
+			int result = jdbcOperations.queryForObject("select count(*) from messages", Integer.class);
+			Assert.assertThat(result, is(numberOfInserts));
+		}
+
+	}
+
+	@TestPropertySource(properties = { "jdbc.batchSize=1000", "jdbc.idleTimeout=100" })
+	public static class BatchInsertTimeoutTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void testBatchInsertionTimeout() throws InterruptedException {
+			final int numberOfInserts = 10;
+			Payload sent = new Payload("hello", 42);
+			for (int i = 0; i < numberOfInserts; i++) {
+				channels.input().send(MessageBuilder.withPayload(sent).build());
+			}
+			Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages", Integer.class), is(0));
+			Thread.sleep(200); // wait 200ms
+			Assert.assertThat(jdbcOperations
+					.queryForObject("select count(*) from messages", Integer.class), is(numberOfInserts));
+		}
+
+	}
+
 	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class SimpleMappingTests extends JdbcSinkIntegrationTests {
 
@@ -84,8 +118,9 @@ public abstract class JdbcSinkIntegrationTests {
 		public void testInsertion() {
 			Payload sent = new Payload("hello", 42);
 			channels.input().send(MessageBuilder.withPayload(sent).build());
-			Payload result = jdbcOperations.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
-			Assert.assertThat(result, Matchers.samePropertyValuesAs(sent));
+			Payload result = jdbcOperations
+					.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
+			Assert.assertThat(result, samePropertyValuesAs(sent));
 		}
 
 	}
@@ -99,8 +134,9 @@ public abstract class JdbcSinkIntegrationTests {
 			Payload sent = new Payload("hello", 42);
 			channels.input().send(MessageBuilder.withPayload(sent).build());
 			Payload expected = new Payload("hell", 666);
-			Payload result = jdbcOperations.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
-			Assert.assertThat(result, Matchers.samePropertyValuesAs(expected));
+			Payload result = jdbcOperations
+					.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
+			Assert.assertThat(result, samePropertyValuesAs(expected));
 		}
 
 	}
@@ -119,7 +155,8 @@ public abstract class JdbcSinkIntegrationTests {
 			channels.input().send(MessageBuilder.withPayload(b).build());
 			channels.input().send(MessageBuilder.withPayload(c).build());
 			channels.input().send(MessageBuilder.withPayload(d).build());
-			List<Payload> result = jdbcOperations.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class));
+			List<Payload> result = jdbcOperations
+					.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class));
 			Assert.assertThat(result, containsInAnyOrder(
 					samePropertyValuesAs(a),
 					samePropertyValuesAs(b),
@@ -137,21 +174,25 @@ public abstract class JdbcSinkIntegrationTests {
 		public void testInsertion() {
 			Payload sent = new Payload("hello", 42);
 			channels.input().send(MessageBuilder.withPayload(sent).build());
-			Payload result = jdbcOperations.query("select a, b from no_script", new BeanPropertyRowMapper<>(Payload.class)).get(0);
-			Assert.assertThat(result, Matchers.samePropertyValuesAs(sent));
+			Payload result = jdbcOperations
+					.query("select a, b from no_script", new BeanPropertyRowMapper<>(Payload.class)).get(0);
+			Assert.assertThat(result, samePropertyValuesAs(sent));
 		}
 
 	}
 
-	@TestPropertySource(properties = { "jdbc.tableName=foobar", "jdbc.initialize=classpath:explicit-script.sql", "jdbc.columns=a,b" })
+	@TestPropertySource(properties = { "jdbc.tableName=foobar", "jdbc.initialize=classpath:explicit-script.sql", "jdbc" +
+			".columns=a,b" })
 	public static class ExplicitTableCreationTests extends JdbcSinkIntegrationTests {
 
 		@Test
 		public void testInsertion() {
 			Payload sent = new Payload("hello", 42);
 			channels.input().send(MessageBuilder.withPayload(sent).build());
-			Payload result = jdbcOperations.query("select a, b from foobar", new BeanPropertyRowMapper<>(Payload.class)).get(0);
-			Assert.assertThat(result, Matchers.samePropertyValuesAs(sent));
+			Payload result = jdbcOperations.query("select a, b from foobar",
+					new BeanPropertyRowMapper<>(Payload.class))
+					.get(0);
+			Assert.assertThat(result, samePropertyValuesAs(sent));
 		}
 
 	}

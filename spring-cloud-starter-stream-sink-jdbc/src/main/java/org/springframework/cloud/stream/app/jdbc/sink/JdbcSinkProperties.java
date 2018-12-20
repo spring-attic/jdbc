@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 the original author or authors.
+ * Copyright 2015-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
 
-
 /**
  * Holds configuration properties for the Jdbc Sink module.
  *
  * @author Eric Bottard
  * @author Artem Bilan
+ * @author Oliver Flasch
  */
 @ConfigurationProperties("jdbc")
 public class JdbcSinkProperties {
@@ -50,6 +50,16 @@ public class JdbcSinkProperties {
 	 * 'true', 'false' or the location of a custom initialization script for the table.
 	 */
 	private String initialize = "false";
+
+	/**
+	 * Threshold in number of messages when data will be flushed to database table.
+	 */
+	private int batchSize = 1;
+
+	/**
+	 * Idle timeout in milliseconds when data is automatically flushed to database table.
+	 */
+	private long idleTimeout = -1L;
 
 	private Map<String, String> columnsMap;
 
@@ -75,6 +85,22 @@ public class JdbcSinkProperties {
 
 	public void setInitialize(String initialize) {
 		this.initialize = initialize;
+	}
+
+	public int getBatchSize() {
+		return this.batchSize;
+	}
+
+	public void setBatchSize(int batchSize) {
+		this.batchSize = batchSize;
+	}
+
+	public long getIdleTimeout() {
+		return this.idleTimeout;
+	}
+
+	public void setIdleTimeout(long idleTimeout) {
+		this.idleTimeout = idleTimeout;
 	}
 
 	Map<String, String> getColumnsMap() {

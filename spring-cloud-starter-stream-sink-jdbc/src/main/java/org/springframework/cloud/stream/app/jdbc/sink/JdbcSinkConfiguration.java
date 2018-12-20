@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 the original author or authors.
+ * Copyright 2015-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -36,22 +37,31 @@ import org.springframework.cloud.stream.app.jdbc.DefaultInitializationScriptReso
 import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.integration.aggregator.DefaultAggregatingMessageGroupProcessor;
+import org.springframework.integration.aggregator.ExpressionEvaluatingCorrelationStrategy;
+import org.springframework.integration.aggregator.MessageCountReleaseStrategy;
 import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.config.AggregatorFactoryBean;
 import org.springframework.integration.expression.ExpressionUtils;
+import org.springframework.integration.expression.ValueExpression;
 import org.springframework.integration.jdbc.JdbcMessageHandler;
 import org.springframework.integration.jdbc.SqlParameterSourceFactory;
 import org.springframework.integration.json.JsonPropertyAccessor;
+import org.springframework.integration.store.MessageGroupStore;
+import org.springframework.integration.store.SimpleMessageStore;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHandler;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -63,6 +73,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author Eric Bottard
  * @author Thomas Risberg
  * @author Robert St. John
+ * @author Oliver Flasch
+ * @author Artem Bilan
  */
 @EnableBinding(Sink.class)
 @EnableConfigurationProperties(JdbcSinkProperties.class)
@@ -83,16 +95,36 @@ public class JdbcSinkConfiguration {
 	private EvaluationContext evaluationContext;
 
 	@Bean
-	@ServiceActivator(autoStartup = "true", inputChannel = Sink.INPUT)
+	@Primary
+	@ServiceActivator(inputChannel = Sink.INPUT)
+	FactoryBean<MessageHandler> aggregatorFactoryBean(MessageGroupStore messageGroupStore) {
+		AggregatorFactoryBean aggregatorFactoryBean = new AggregatorFactoryBean();
+		aggregatorFactoryBean
+				.setCorrelationStrategy(new ExpressionEvaluatingCorrelationStrategy("payload.getClass().name"));
+		aggregatorFactoryBean.setReleaseStrategy(new MessageCountReleaseStrategy(this.properties.getBatchSize()));
+		if (this.properties.getIdleTimeout() >= 0) {
+			aggregatorFactoryBean.setGroupTimeoutExpression(new ValueExpression<>(this.properties.getIdleTimeout()));
+		}
+		aggregatorFactoryBean.setMessageStore(messageGroupStore);
+		aggregatorFactoryBean.setProcessorBean(new DefaultAggregatingMessageGroupProcessor());
+		aggregatorFactoryBean.setExpireGroupsUponCompletion(true);
+		aggregatorFactoryBean.setSendPartialResultOnExpiry(true);
+		aggregatorFactoryBean.setOutputChannelName("toSink");
+		return aggregatorFactoryBean;
+	}
+
+	@Bean
+	@ServiceActivator(inputChannel = "toSink")
 	public JdbcMessageHandler jdbcMessageHandler(DataSource dataSource) {
 		final MultiValueMap<String, Expression> columnExpressionVariations = new LinkedMultiValueMap<>();
-		for (Map.Entry<String, String> entry : properties.getColumnsMap().entrySet()) {
+		for (Map.Entry<String, String> entry : this.properties.getColumnsMap().entrySet()) {
 			String value = entry.getValue();
-			columnExpressionVariations.add(entry.getKey(), spelExpressionParser.parseExpression(value));
+			columnExpressionVariations.add(entry.getKey(), this.spelExpressionParser.parseExpression(value));
 			if (!value.startsWith("payload")) {
 				String qualified = "payload." + value;
 				try {
-					columnExpressionVariations.add(entry.getKey(), spelExpressionParser.parseExpression(qualified));
+					columnExpressionVariations.add(entry.getKey(),
+							this.spelExpressionParser.parseExpression(qualified));
 				}
 				catch (SpelParseException e) {
 					logger.info("failed to parse qualified fallback expression " + qualified +
@@ -101,9 +133,9 @@ public class JdbcSinkConfiguration {
 			}
 		}
 		JdbcMessageHandler jdbcMessageHandler = new JdbcMessageHandler(dataSource,
-				generateSql(properties.getTableName(), columnExpressionVariations.keySet()));
-		SqlParameterSourceFactory parameterSourceFactory = new ParameterFactory(
-				columnExpressionVariations, evaluationContext);
+				generateSql(this.properties.getTableName(), columnExpressionVariations.keySet()));
+		SqlParameterSourceFactory parameterSourceFactory =
+				new ParameterFactory(columnExpressionVariations, this.evaluationContext);
 		jdbcMessageHandler.setSqlParameterSourceFactory(parameterSourceFactory);
 		return jdbcMessageHandler;
 	}
@@ -117,13 +149,22 @@ public class JdbcSinkConfiguration {
 		databasePopulator.setIgnoreFailedDrops(true);
 		dataSourceInitializer.setDatabasePopulator(databasePopulator);
 		if ("true".equals(properties.getInitialize())) {
-			databasePopulator.addScript(new DefaultInitializationScriptResource(properties.getTableName(),
-					properties.getColumnsMap().keySet()));
+			databasePopulator.addScript(
+					new DefaultInitializationScriptResource(this.properties.getTableName(),
+							this.properties.getColumnsMap().keySet()));
 		}
 		else {
-			databasePopulator.addScript(resourceLoader.getResource(properties.getInitialize()));
+			databasePopulator.addScript(resourceLoader.getResource(this.properties.getInitialize()));
 		}
 		return dataSourceInitializer;
+	}
+
+	@Bean
+	MessageGroupStore messageGroupStore() {
+		SimpleMessageStore messageGroupStore = new SimpleMessageStore();
+		messageGroupStore.setTimeoutOnIdle(true);
+		messageGroupStore.setCopyOnGet(false);
+		return messageGroupStore;
 	}
 
 	@Bean
@@ -133,7 +174,7 @@ public class JdbcSinkConfiguration {
 
 	@PostConstruct
 	public void afterPropertiesSet() {
-		this.evaluationContext = ExpressionUtils.createStandardEvaluationContext(beanFactory);
+		this.evaluationContext = ExpressionUtils.createStandardEvaluationContext(this.beanFactory);
 	}
 
 	private String generateSql(String tableName, Set<String> columns) {
@@ -172,8 +213,9 @@ public class JdbcSinkConfiguration {
 			}
 			Message<?> message = (Message<?>) o;
 			MapSqlParameterSource parameterSource = new MapSqlParameterSource();
-			for (String key : columnExpressions.keySet()) {
-				List<Expression> spels = columnExpressions.get(key);
+			for (Map.Entry<String, List<Expression>> entry : this.columnExpressions.entrySet()) {
+				String key = entry.getKey();
+				List<Expression> spels = entry.getValue();
 				Object value = NOT_SET;
 				EvaluationException lastException = null;
 				for (Expression spel : spels) {

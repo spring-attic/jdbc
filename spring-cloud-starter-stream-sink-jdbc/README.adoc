@@ -26,6 +26,8 @@ $$jdbc.columns$$:: $$The comma separated colon-based pairs of column names and S
  Names are used at initialization time to issue the DDL.$$ *($$String$$, default: `$$payload:payload.toString()$$`)*
 $$jdbc.initialize$$:: $$'true', 'false' or the location of a custom initialization script for the table.$$ *($$String$$, default: `$$false$$`)*
 $$jdbc.table-name$$:: $$The name of the table to write into.$$ *($$String$$, default: `$$messages$$`)*
+$$jdbc.batch-size$$:: $$Threshold in number of messages when data will be flushed to database table.$$ *($$Integer$$, default: `$$1$$`)*
+$$jdbc.idle-timeout$$:: $$Idle timeout in milliseconds when data is automatically flushed to database table.$$ *($$Long$$, default: `$$-1$$`)*
 $$spring.datasource.data$$:: $$Data (DML) script resource references.$$ *($$List<String>$$, default: `$$<none>$$`)*
 $$spring.datasource.driver-class-name$$:: $$Fully qualified name of the JDBC driver. Auto-detected based on the URL by default.$$ *($$String$$, default: `$$<none>$$`)*
 $$spring.datasource.initialization-mode$$:: $$Initialize the datasource using available DDL and DML scripts.$$ *($$DataSourceInitializationMode$$, default: `$$embedded$$`, possible values: `ALWAYS`,`EMBEDDED`,`NEVER`)*
@@ -51,6 +53,11 @@ So, we can insert it into the table with `name`, `city` and `street` structure u
 ```
 --jdbc.columns=name,city:address.city,street:address.street
 ```
+
+This sink supports batch inserts, as far as supported by the underlying JDBC driver.
+Batch inserts are configured via the `batch-size` and  `idle-timeout` properties:
+Incoming messages are aggregated until `batch-size` messages are present, then inserted as a batch.
+If `idle-timeout` milliseconds pass with no new messages, the aggregated batch is inserted even if it is smaller than `batch-size`, capping maximum latency.
 
 NOTE: The module also uses Spring Boot's http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html#boot-features-configure-datasource[DataSource support] for configuring the database connection, so properties like `spring.datasource.url` _etc._ apply.
 
