@@ -51,6 +51,16 @@ public class JdbcSinkProperties {
 	 */
 	private String initialize = "false";
 
+	/**
+	 * Threshold in number of messages when data will be flushed to database table.
+	 */
+	private int batchSize = 1;
+
+	/**
+	 * Idle timeout in milliseconds when data is automatically flushed to database table.
+	 */
+	private long idleTimeout = -1L;
+
 	private Map<String, String> columnsMap;
 
 	public String getTableName() {
@@ -75,6 +85,22 @@ public class JdbcSinkProperties {
 
 	public void setInitialize(String initialize) {
 		this.initialize = initialize;
+	}
+
+	public int getBatchSize() {
+		return this.batchSize;
+	}
+
+	public void setBatchSize(int batchSize) {
+		this.batchSize = batchSize;
+	}
+
+	public long getIdleTimeout() {
+		return this.idleTimeout;
+	}
+
+	public void setIdleTimeout(long idleTimeout) {
+		this.idleTimeout = idleTimeout;
 	}
 
 	Map<String, String> getColumnsMap() {

@@ -76,6 +76,39 @@ public abstract class JdbcSinkIntegrationTests {
 		}
 
 	}
+	
+  @TestPropertySource(properties = "jdbc.batchSize=1000")
+	public static class SimpleBatchInsertTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void testBatchInsertion() {
+      final int numberOfInserts = 5000;
+			Payload sent = new Payload("hello", 42);
+      for (int i = 0; i < numberOfInserts; i++) {
+  			channels.input().send(MessageBuilder.withPayload(sent).build());
+      }
+      int result = jdbcOperations.queryForObject("select count(*) from messages", Integer.class);
+			Assert.assertThat(result, is(numberOfInserts));
+		}
+
+	}
+
+  @TestPropertySource(properties = { "jdbc.batchSize=1000", "jdbc.idleTimeout=1000" })
+	public static class BatchInsertTimeoutTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void testBatchInsertionTimeout() throws InterruptedException {
+      final int numberOfInserts = 10;
+			Payload sent = new Payload("hello", 42);
+      for (int i = 0; i < numberOfInserts; i++) {
+  			channels.input().send(MessageBuilder.withPayload(sent).build());
+      }
+      Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages", Integer.class), is(0));
+      Thread.sleep(2000); // wait 2s
+      Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages", Integer.class), is(numberOfInserts));
+		}
+
+	}
 
 	@TestPropertySource(properties = "jdbc.columns=a,b")
 	public static class SimpleMappingTests extends JdbcSinkIntegrationTests {

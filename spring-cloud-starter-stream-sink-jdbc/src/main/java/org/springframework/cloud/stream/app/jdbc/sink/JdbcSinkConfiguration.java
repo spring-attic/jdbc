@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
@@ -28,21 +29,33 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.binding.InputBindingLifecycle;
 import org.springframework.cloud.stream.app.jdbc.DefaultInitializationScriptResource;
 import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.integration.aggregator.DefaultAggregatingMessageGroupProcessor;
+import org.springframework.integration.aggregator.ExpressionEvaluatingCorrelationStrategy;
+import org.springframework.integration.aggregator.MessageCountReleaseStrategy;
 import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.config.AggregatorFactoryBean;
+import org.springframework.integration.store.MessageGroupStore;
+import org.springframework.integration.store.MessageGroupStoreReaper;
+import org.springframework.integration.store.SimpleMessageStore;
 import org.springframework.integration.expression.ExpressionUtils;
 import org.springframework.integration.jdbc.JdbcMessageHandler;
 import org.springframework.integration.jdbc.SqlParameterSourceFactory;
@@ -52,6 +65,10 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -63,7 +80,10 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author Eric Bottard
  * @author Thomas Risberg
  * @author Robert St. John
+ * @author Oliver Flasch
  */
+@Configuration
+@EnableScheduling
 @EnableBinding(Sink.class)
 @EnableConfigurationProperties(JdbcSinkProperties.class)
 public class JdbcSinkConfiguration {
@@ -83,7 +103,28 @@ public class JdbcSinkConfiguration {
 	private EvaluationContext evaluationContext;
 
 	@Bean
+	public MessageChannel toSink() {
+		return new DirectChannel();
+	}
+
+	@Bean
+	@Primary
 	@ServiceActivator(autoStartup = "true", inputChannel = Sink.INPUT)
+	FactoryBean<MessageHandler> aggregatorFactoryBean(MessageChannel toSink, MessageGroupStore messageGroupStore) {
+		AggregatorFactoryBean aggregatorFactoryBean = new AggregatorFactoryBean();
+		aggregatorFactoryBean.setCorrelationStrategy(
+				new ExpressionEvaluatingCorrelationStrategy("payload.getClass().name"));
+		aggregatorFactoryBean.setReleaseStrategy(new MessageCountReleaseStrategy(properties.getBatchSize()));
+		aggregatorFactoryBean.setMessageStore(messageGroupStore);
+		aggregatorFactoryBean.setProcessorBean(new DefaultAggregatingMessageGroupProcessor());
+		aggregatorFactoryBean.setExpireGroupsUponCompletion(true);
+		aggregatorFactoryBean.setSendPartialResultOnExpiry(true);
+		aggregatorFactoryBean.setOutputChannel(toSink);
+		return aggregatorFactoryBean;
+	}
+
+	@Bean
+	@ServiceActivator(autoStartup = "true", inputChannel = "toSink")
 	public JdbcMessageHandler jdbcMessageHandler(DataSource dataSource) {
 		final MultiValueMap<String, Expression> columnExpressionVariations = new LinkedMultiValueMap<>();
 		for (Map.Entry<String, String> entry : properties.getColumnsMap().entrySet()) {
@@ -124,6 +165,30 @@ public class JdbcSinkConfiguration {
 			databasePopulator.addScript(resourceLoader.getResource(properties.getInitialize()));
 		}
 		return dataSourceInitializer;
+	}
+
+	@Bean
+	MessageGroupStore messageGroupStore() {
+		SimpleMessageStore messageGroupStore = new SimpleMessageStore();
+		messageGroupStore.setTimeoutOnIdle(true);
+		messageGroupStore.setCopyOnGet(false);
+		return messageGroupStore;
+	}
+
+	@Bean
+	MessageGroupStoreReaper messageGroupStoreReaper(MessageGroupStore messageStore,
+													InputBindingLifecycle inputBindingLifecycle) {
+		MessageGroupStoreReaper messageGroupStoreReaper = new MessageGroupStoreReaper(messageStore);
+		messageGroupStoreReaper.setPhase(inputBindingLifecycle.getPhase() - 1);
+		messageGroupStoreReaper.setTimeout(properties.getIdleTimeout());
+		messageGroupStoreReaper.setAutoStartup(true);
+		messageGroupStoreReaper.setExpireOnDestroy(true);
+		return messageGroupStoreReaper;
+	}
+
+	@Bean
+	ReaperTask reaperTask() {
+		return new ReaperTask();
 	}
 
 	@Bean
@@ -217,6 +282,23 @@ public class JdbcSinkConfiguration {
 				}
 			}
 			return parameterSource;
+		}
+
+	}
+
+	public static class ReaperTask {
+
+		@Autowired
+		MessageGroupStoreReaper messageGroupStoreReaper;
+
+		@Scheduled(fixedRate=1000)
+		public void reap() {
+			messageGroupStoreReaper.run();
+		}
+
+		@PreDestroy
+		public void beforeDestroy() {
+			reap();
 		}
 
 	}
