@@ -51,6 +51,7 @@ import org.springframework.integration.aggregator.DefaultAggregatingMessageGroup
 import org.springframework.integration.aggregator.ExpressionEvaluatingCorrelationStrategy;
 import org.springframework.integration.aggregator.MessageCountReleaseStrategy;
 import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.expression.ValueExpression;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.AggregatorFactoryBean;
 import org.springframework.integration.store.MessageGroupStore;
@@ -83,7 +84,6 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author Oliver Flasch
  */
 @Configuration
-@EnableScheduling
 @EnableBinding(Sink.class)
 @EnableConfigurationProperties(JdbcSinkProperties.class)
 public class JdbcSinkConfiguration {
@@ -115,6 +115,7 @@ public class JdbcSinkConfiguration {
 		aggregatorFactoryBean.setCorrelationStrategy(
 				new ExpressionEvaluatingCorrelationStrategy("payload.getClass().name"));
 		aggregatorFactoryBean.setReleaseStrategy(new MessageCountReleaseStrategy(properties.getBatchSize()));
+    aggregatorFactoryBean.setGroupTimeoutExpression(new ValueExpression<>(properties.getIdleTimeout()));
 		aggregatorFactoryBean.setMessageStore(messageGroupStore);
 		aggregatorFactoryBean.setProcessorBean(new DefaultAggregatingMessageGroupProcessor());
 		aggregatorFactoryBean.setExpireGroupsUponCompletion(true);
@@ -173,22 +174,6 @@ public class JdbcSinkConfiguration {
 		messageGroupStore.setTimeoutOnIdle(true);
 		messageGroupStore.setCopyOnGet(false);
 		return messageGroupStore;
-	}
-
-	@Bean
-	MessageGroupStoreReaper messageGroupStoreReaper(MessageGroupStore messageStore,
-													InputBindingLifecycle inputBindingLifecycle) {
-		MessageGroupStoreReaper messageGroupStoreReaper = new MessageGroupStoreReaper(messageStore);
-		messageGroupStoreReaper.setPhase(inputBindingLifecycle.getPhase() - 1);
-		messageGroupStoreReaper.setTimeout(properties.getIdleTimeout());
-		messageGroupStoreReaper.setAutoStartup(true);
-		messageGroupStoreReaper.setExpireOnDestroy(true);
-		return messageGroupStoreReaper;
-	}
-
-	@Bean
-	ReaperTask reaperTask() {
-		return new ReaperTask();
 	}
 
 	@Bean
@@ -282,23 +267,6 @@ public class JdbcSinkConfiguration {
 				}
 			}
 			return parameterSource;
-		}
-
-	}
-
-	public static class ReaperTask {
-
-		@Autowired
-		MessageGroupStoreReaper messageGroupStoreReaper;
-
-		@Scheduled(fixedRate=1000)
-		public void reap() {
-			messageGroupStoreReaper.run();
-		}
-
-		@PreDestroy
-		public void beforeDestroy() {
-			reap();
 		}
 
 	}
