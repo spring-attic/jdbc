@@ -16,19 +16,10 @@
 
 package org.springframework.cloud.stream.app.jdbc.sink;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.samePropertyValuesAs;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +35,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.tuple.Tuple;
 import org.springframework.tuple.TupleBuilder;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.Matchers.*;
+
 /**
  * Integration Tests for JdbcSink. Uses hsqldb as a (real) embedded DB.
  *
@@ -51,6 +48,7 @@ import org.springframework.tuple.TupleBuilder;
  * @author Thomas Risberg
  * @author Artem Bilan
  * @author Robert St. John
+ * @author Oliver Flasch
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -93,7 +91,7 @@ public abstract class JdbcSinkIntegrationTests {
 
 	}
 
-  @TestPropertySource(properties = { "jdbc.batchSize=1000", "jdbc.idleTimeout=1000" })
+  @TestPropertySource(properties = { "jdbc.batchSize=1000", "jdbc.idleTimeout=100" })
 	public static class BatchInsertTimeoutTests extends JdbcSinkIntegrationTests {
 
 		@Test
@@ -104,7 +102,7 @@ public abstract class JdbcSinkIntegrationTests {
   			channels.input().send(MessageBuilder.withPayload(sent).build());
       }
       Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages", Integer.class), is(0));
-      Thread.sleep(2000); // wait 2s
+      Thread.sleep(200); // wait 200ms
       Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages", Integer.class), is(numberOfInserts));
 		}
 
