@@ -16,11 +16,11 @@
 
 package org.springframework.cloud.stream.app.jdbc.sink;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
+
+import java.util.Map;
 
 
 /**
@@ -28,6 +28,7 @@ import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
  *
  * @author Eric Bottard
  * @author Artem Bilan
+ * @author Oliver Flasch
  */
 @ConfigurationProperties("jdbc")
 public class JdbcSinkProperties {
