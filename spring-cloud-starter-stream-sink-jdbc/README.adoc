@@ -54,6 +54,8 @@ So, we can insert it into the table with `name`, `city` and `street` structure u
 --jdbc.columns=name,city:address.city,street:address.street
 ```
 
+This sink supports batch inserts, as far as supported by the underlying JDBC driver. Batch inserts are configured via the `batch-size` and  `idle-timeout` properties: Incoming messages are aggregated until `batch-size` messages are present, then inserted as a batch. If `idle-timeout` milliseconds pass with no new messages, the aggregated batch is inserted even if it is smaller than `batch-size`, capping maximum latency.
+
 NOTE: The module also uses Spring Boot's http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html#boot-features-configure-datasource[DataSource support] for configuring the database connection, so properties like `spring.datasource.url` _etc._ apply.
 
 == Build
