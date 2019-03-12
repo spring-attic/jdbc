@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2019 the original author or authors.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,13 +38,15 @@ import org.springframework.test.context.junit4.SpringRunner;
  * Integration Tests for PgcopySink with error table. Only runs if PostgreSQL database is available.
  *
  * @author Thomas Risberg
+ * @author Janne Valkealahti
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
 		classes = PgcopyErrorTableIntegrationTests.PgcopySinkApplication.class)
-@TestPropertySource(properties = {"pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
+@TestPropertySource(properties = { "pgcopy.tableName=names", "pgcopy.batch-size=3", "pgcopy.initialize=true",
 		"pgcopy.columns=id,name,age", "pgcopy.format=CSV", "pgcopy.error-table=test_errors",
-		"spring.datasource.initialize=true","spring.datasource.schema=classpath:error-table-ddl.sql"})
+		"spring.datasource.initialization-mode=always", "spring.datasource.schema=classpath:error-table-ddl.sql",
+		"spring.datasource.continue-on-error=true" })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class PgcopyErrorTableIntegrationTests {
 
