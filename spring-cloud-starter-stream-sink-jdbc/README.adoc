@@ -52,7 +52,7 @@ So, we can insert it into the table with `name`, `city` and `street` structure u
 --jdbc.columns=name,city:address.city,street:address.street
 ```
 
-NOTE: The module also uses Spring Boot's http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html#boot-features-configure-datasource[DataSource support] for configuring the database connection, so properties like `spring.datasource.url` _etc._ apply.
+NOTE: The module also uses Spring Boot's https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-sql.html#boot-features-configure-datasource[DataSource support] for configuring the database connection, so properties like `spring.datasource.url` _etc._ apply.
 
 == Build
 
