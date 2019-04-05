@@ -16,14 +16,6 @@
 
 package org.springframework.cloud.stream.app.jdbc.sink;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.samePropertyValuesAs;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +35,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.tuple.Tuple;
 import org.springframework.tuple.TupleBuilder;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.Matchers.*;
+
 /**
  * Integration Tests for JdbcSink. Uses hsqldb as a (real) embedded DB.
  *
@@ -51,6 +49,7 @@ import org.springframework.tuple.TupleBuilder;
  * @author Artem Bilan
  * @author Robert St. John
  * @author Oliver Flasch
+ * @author Soby Chacko
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -75,6 +74,19 @@ public abstract class JdbcSinkIntegrationTests {
 			Assert.assertThat(result, is("hello42"));
 		}
 
+	}
+
+	@TestPropertySource(properties = "jdbc.columns=a")
+	public static class SendAsByteArrayBehavior extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void testInsertionWhenDataReceivedAsByteArray() {
+			String hello = "{\"a\": \"hello\"}";
+			channels.input().send(MessageBuilder.withPayload(hello.getBytes()).build());
+			Assert.assertThat(jdbcOperations.queryForObject(
+					"select count(*) from messages where a = ?",
+					Integer.class, "hello"), is(1));
+		}
 	}
 
 	@TestPropertySource(properties = "jdbc.batchSize=1000")
@@ -328,6 +340,4 @@ public abstract class JdbcSinkIntegrationTests {
 	public static class JdbcSinkApplication {
 
 	}
-
-
 }

@@ -16,13 +16,7 @@
 
 package org.springframework.cloud.stream.app.jdbc.sink;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.PostConstruct;
-import javax.sql.DataSource;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -35,6 +29,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.app.jdbc.DefaultInitializationScriptResource;
 import org.springframework.cloud.stream.app.jdbc.ShorthandMapConverter;
+import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -56,16 +51,25 @@ import org.springframework.integration.jdbc.SqlParameterSourceFactory;
 import org.springframework.integration.json.JsonPropertyAccessor;
 import org.springframework.integration.store.MessageGroupStore;
 import org.springframework.integration.store.SimpleMessageStore;
+import org.springframework.integration.support.MutableMessage;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * A module that writes its incoming payload to an RDBMS using JDBC.
@@ -75,6 +79,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author Robert St. John
  * @author Oliver Flasch
  * @author Artem Bilan
+ * @author Soby Chacko
  */
 @EnableBinding(Sink.class)
 @EnableConfigurationProperties(JdbcSinkProperties.class)
@@ -133,11 +138,47 @@ public class JdbcSinkConfiguration {
 			}
 		}
 		JdbcMessageHandler jdbcMessageHandler = new JdbcMessageHandler(dataSource,
-				generateSql(this.properties.getTableName(), columnExpressionVariations.keySet()));
+				generateSql(this.properties.getTableName(), columnExpressionVariations.keySet())) {
+
+			@Override
+			protected void handleMessageInternal(final Message<?> message) {
+				Message<?> convertedMessage = message;
+				if (message.getPayload() instanceof byte[] || message.getPayload() instanceof Iterable){
+
+					final String contentType = message.getHeaders().containsKey(MessageHeaders.CONTENT_TYPE)
+							? message.getHeaders().get(MessageHeaders.CONTENT_TYPE).toString()
+							: BindingProperties.DEFAULT_CONTENT_TYPE.toString();
+					if (message.getPayload() instanceof Iterable) {
+						Stream<Object> messageStream =
+								StreamSupport.stream(((Iterable<?>) message.getPayload()).spliterator(),false)
+										.map(payload -> {
+											if (payload instanceof byte[]) {
+												return convertibleContentType(contentType) ?
+														new String(((byte[]) payload)) : payload;
+											}
+											else {
+												return payload;
+											}
+										});
+						convertedMessage = new MutableMessage<>(messageStream.collect(Collectors.toList()));
+					}
+					else {
+						if (convertibleContentType(contentType)) {
+							convertedMessage = new MutableMessage<>(new String(((byte[]) message.getPayload())), message.getHeaders());
+						}
+					}
+				}
+				super.handleMessageInternal(convertedMessage);
+			}
+		};
 		SqlParameterSourceFactory parameterSourceFactory =
 				new ParameterFactory(columnExpressionVariations, this.evaluationContext);
 		jdbcMessageHandler.setSqlParameterSourceFactory(parameterSourceFactory);
 		return jdbcMessageHandler;
+	}
+
+	private boolean convertibleContentType(String contentType) {
+		return contentType.contains("text") || contentType.contains("json") || contentType.contains("x-spring-tuple");
 	}
 
 	@ConditionalOnProperty("jdbc.initialize")
