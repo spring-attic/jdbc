@@ -219,25 +219,22 @@ public class PgcopySinkConfiguration {
 			}
 
 			private long doCopy(final Collection<?> payloads, TransactionTemplate txTemplate) {
-				Long rows = txTemplate.execute(new TransactionCallback<Long>() {
-					@Override
-					public Long doInTransaction(TransactionStatus transactionStatus) {
-						return jdbcTemplate.execute(
-								new ConnectionCallback<Long>() {
-									@Override
-									public Long doInConnection(Connection connection) throws SQLException, DataAccessException {
-										CopyManager cm = connection.unwrap(BaseConnection.class).getCopyAPI();
-										CopyIn ci = cm.copyIn(sql.toString());
-										for (Object payloadData : payloads) {
-											byte[] data = (payloadData+"\n").getBytes();
-											ci.writeToCopy(data, 0, data.length);
-										}
-										return Long.valueOf(ci.endCopy());
-									}
+				Long rows = txTemplate.execute(transactionStatus -> jdbcTemplate.execute(
+						new ConnectionCallback<Long>() {
+							@Override
+							public Long doInConnection(Connection connection) throws SQLException, DataAccessException {
+								CopyManager cm = connection.unwrap(BaseConnection.class).getCopyAPI();
+								CopyIn ci = cm.copyIn(sql.toString());
+								for (Object payloadData : payloads) {
+									String textPayload = (payloadData instanceof byte[]) ?
+											new String((byte[]) payloadData) : (String) payloadData;
+									byte[] data = (textPayload+"\n").getBytes();
+									ci.writeToCopy(data, 0, data.length);
 								}
-						);
-					}
-				});
+								return Long.valueOf(ci.endCopy());
+							}
+						}
+				));
 				return rows;
 			}
 		};
