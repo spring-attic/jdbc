@@ -80,6 +80,7 @@ import java.util.stream.StreamSupport;
  * @author Oliver Flasch
  * @author Artem Bilan
  * @author Soby Chacko
+ * @author Szabolcs Stremler
  */
 @EnableBinding(Sink.class)
 @EnableConfigurationProperties(JdbcSinkProperties.class)
