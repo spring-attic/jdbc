@@ -50,6 +50,7 @@ import static org.hamcrest.Matchers.*;
  * @author Robert St. John
  * @author Oliver Flasch
  * @author Soby Chacko
+ * @author Szabolcs Stremler
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -149,6 +150,20 @@ public abstract class JdbcSinkIntegrationTests {
 			Payload result = jdbcOperations
 					.query("select a, b from messages", new BeanPropertyRowMapper<>(Payload.class)).get(0);
 			Assert.assertThat(result, samePropertyValuesAs(expected));
+		}
+
+	}
+
+	@TestPropertySource(properties = "jdbc.columns=a: headers[foo]")
+	public static class HeaderInsertTests extends JdbcSinkIntegrationTests {
+
+		@Test
+		public void testHeaderInsertion() {
+			Payload sent = new Payload("hello", 42);
+			channels.input().send(MessageBuilder.withPayload(sent)
+					.setHeader("foo", "bar").build());
+			Assert.assertThat(jdbcOperations.queryForObject("select count(*) from messages where a = ?",
+					Integer.class, "bar"), is(1));
 		}
 
 	}

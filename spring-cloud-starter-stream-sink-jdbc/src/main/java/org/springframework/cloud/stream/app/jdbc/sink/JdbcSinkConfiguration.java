@@ -160,7 +160,7 @@ public class JdbcSinkConfiguration {
 												return payload;
 											}
 										});
-						convertedMessage = new MutableMessage<>(messageStream.collect(Collectors.toList()));
+						convertedMessage = new MutableMessage<>(messageStream.collect(Collectors.toList()), message.getHeaders());
 					}
 					else {
 						if (convertibleContentType(contentType)) {
