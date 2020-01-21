@@ -80,6 +80,7 @@ import java.util.stream.StreamSupport;
  * @author Oliver Flasch
  * @author Artem Bilan
  * @author Soby Chacko
+ * @author Szabolcs Stremler
  */
 @EnableBinding(Sink.class)
 @EnableConfigurationProperties(JdbcSinkProperties.class)
@@ -160,7 +161,7 @@ public class JdbcSinkConfiguration {
 												return payload;
 											}
 										});
-						convertedMessage = new MutableMessage<>(messageStream.collect(Collectors.toList()));
+						convertedMessage = new MutableMessage<>(messageStream.collect(Collectors.toList()), message.getHeaders());
 					}
 					else {
 						if (convertibleContentType(contentType)) {
