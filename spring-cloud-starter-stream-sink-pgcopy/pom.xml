@@ -55,15 +55,6 @@
 						<pgcopy-sink/>
 					</generatedApps>
 					<enableContainerImageMetadata>true</enableContainerImageMetadata>
-					<metadataSourceTypeFilters>
-						<filter>org.springframework.cloud.stream.app.pgcopy.sink.PgcopySinkProperties</filter>
-					</metadataSourceTypeFilters>
-					<metadataNameFilters>
-						<filter>spring.datasource.url</filter>
-						<filter>spring.datasource.driver-class-name</filter>
-						<filter>spring.datasource.username</filter>
-						<filter>spring.datasource.password</filter>
-					</metadataNameFilters>
 				</configuration>
 			</plugin>
 		</plugins>

@@ -85,19 +85,6 @@
 						<jdbc-source/>
 					</generatedApps>
 					<enableContainerImageMetadata>true</enableContainerImageMetadata>
-					<metadataSourceTypeFilters>
-						<filter>org.springframework.cloud.stream.app.jdbc.source.JdbcSourceProperties</filter>
-						<filter>org.springframework.cloud.stream.app.trigger.TriggerPropertiesMaxMessagesDefaultOne</filter>
-					</metadataSourceTypeFilters>
-					<metadataNameFilters>
-						<filter>spring.datasource.url</filter>
-						<filter>spring.datasource.driver-class-name</filter>
-						<filter>spring.datasource.username</filter>
-						<filter>spring.datasource.password</filter>
-						<filter>spring.datasource.schema</filter>
-						<filter>spring.datasource.data</filter>
-						<filter>spring.datasource.initialization-mode</filter>
-					</metadataNameFilters>
 				</configuration>
 			</plugin>
 		</plugins>

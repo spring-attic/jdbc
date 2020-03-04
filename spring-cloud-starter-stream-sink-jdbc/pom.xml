@@ -81,18 +81,6 @@
 						<jdbc-sink/>
 					</generatedApps>
 					<enableContainerImageMetadata>true</enableContainerImageMetadata>
-					<metadataSourceTypeFilters>
-						<filter>org.springframework.cloud.stream.app.jdbc.sink.JdbcSinkProperties</filter>
-					</metadataSourceTypeFilters>
-					<metadataNameFilters>
-						<filter>spring.datasource.url</filter>
-						<filter>spring.datasource.driver-class-name</filter>
-						<filter>spring.datasource.username</filter>
-						<filter>spring.datasource.password</filter>
-						<filter>spring.datasource.schema</filter>
-						<filter>spring.datasource.data</filter>
-						<filter>spring.datasource.initialization-mode</filter>
-					</metadataNameFilters>
 				</configuration>
 			</plugin>
 		</plugins>
